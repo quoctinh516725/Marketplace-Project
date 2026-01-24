@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -12,8 +6,105 @@ generator client {
 datasource db {
   provider = "sqlserver"
 }
+
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  phone         String?
+  password      String
+  fullName      String?   @map("full_name")
+  avatarUrl     String?   @map("avatar_url")
+  gender        String?
+  date_of_birth DateTime? @map("dateOfBirth")
+  status        String    @default("ACTIVE")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createAt      DateTime  @default(now()) @map("create_at")
+  updateAt      DateTime  @default(now()) @map("update_at")
+
+  addresses     UserAddress[]
+  userRoles     UserRole[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model UserAddress {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  receiver        String
+  receiverAddress String   @map("receiver_address")
+  receiverPhone   String   @map("receiver_phone")
+  isDefault       Boolean  @map("is_default")
+  createAt        DateTime @default(now()) @map("create_at")
+  updateAt        DateTime @default(now()) @map("update_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_addresses")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  status      String   @default("ACTIVE")
+  createAt    DateTime @default(now()) @map("create_at")
+  updateAt    DateTime @default(now()) @map("update_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  roleId   String   @map("role_id")
+  createAt DateTime @default(now()) @map("create_at")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiredAt DateTime @map("expired_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
