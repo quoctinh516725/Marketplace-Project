@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { env } from "../config/env";
+import { sendError } from "../utils/response";
 
 export function errorHandler(
   err: any,
@@ -9,22 +10,14 @@ export function errorHandler(
 ) {
   if (env.NODE_ENV === "production") {
     if (err.isOperational) {
-      return res.status(err.statusCode).json({
-        success: false,
-        message: err.message,
-      });
+      sendError(res, err.message, err.statusCode);
+    } else {
+      console.log("Lỗi hệ thống: ", err);
+      sendError(res, "Đã có lỗi xảy ra, vui lòng thử lại sau!");
     }
+  } else {
+    //Development
 
-    console.log("Lỗi hệ thống: ", err);
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi bất định",
-    });
+    sendError(res, err.message, err.statusCode, err.stack);
   }
-
-  res.status(err.statusCode).json({
-    success: false,
-    message: err.message,
-    stack: err.stack,
-  });
 }
