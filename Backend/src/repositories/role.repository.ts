@@ -1,4 +1,3 @@
-import { Prisma } from "../../generated/prisma/browser";
 import { prisma } from "../config/prisma";
 
 class RoleRepository {
