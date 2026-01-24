@@ -1,6 +1,7 @@
 import { User } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
 import { UserStatus } from "../constants";
+import { PrismaType } from "../types";
 export interface CreateUserData {
   username: string;
   email: string;
@@ -13,6 +14,7 @@ export interface UpdateUserData {
   gender?: string;
   dateOfBirth?: Date;
   status?: UserStatus;
+  lastLoginAt?: Date;
 }
 
 class UserRepository {
@@ -30,18 +32,29 @@ class UserRepository {
     });
     return exist !== null;
   }
-  async create(data: CreateUserData): Promise<User> {
-    const newUser = await prisma.user.create({
+  async create(client: PrismaType, data: CreateUserData): Promise<User> {
+    const newUser = await client.user.create({
       data,
     });
     return newUser;
   }
-  async update(id: string, data: UpdateUserData): Promise<User> {
-    const updatedUser = await prisma.user.update({
+  async update(
+    client: PrismaType,
+    id: string,
+    data: UpdateUserData,
+  ): Promise<User> {
+    const updatedUser = await client.user.update({
       where: { id },
       data,
     });
     return updatedUser;
+  }
+  async existEmailOrUsername(emailOrUsername: string): Promise<User | null> {
+    return await prisma.user.findFirst({
+      where: {
+        OR: [{ username: emailOrUsername }, { email: emailOrUsername }],
+      },
+    });
   }
 }
 

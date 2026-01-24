@@ -12,7 +12,9 @@ class AuthController {
       password,
     });
     const result = await authService.login(dataValidated);
-    sendSuccess(res, result, "Đăng nhập thành công!");
+    const { refreshToken, ...data } = result;
+    setRefreshTokenCookie(res, refreshToken);
+    sendSuccess(res, data, "Đăng nhập thành công!");
   });
   register = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
