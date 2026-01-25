@@ -16,11 +16,11 @@ model User {
   fullName      String?   @map("full_name")
   avatarUrl     String?   @map("avatar_url")
   gender        String?
-  date_of_birth DateTime? @map("dateOfBirth")
+  dateOfBirth DateTime? @map("date_of_birth")
   status        String    @default("ACTIVE")
   lastLoginAt   DateTime? @map("last_login_at")
-  createAt      DateTime  @default(now()) @map("create_at")
-  updateAt      DateTime  @default(now()) @map("update_at")
+  createdAt      DateTime  @default(now()) @map("create_at")
+  updatedAt      DateTime  @default(now()) @map("update_at")
 
   addresses     UserAddress[]
   userRoles     UserRole[]
@@ -36,8 +36,8 @@ model UserAddress {
   receiverAddress String   @map("receiver_address")
   receiverPhone   String   @map("receiver_phone")
   isDefault       Boolean  @map("is_default")
-  createAt        DateTime @default(now()) @map("create_at")
-  updateAt        DateTime @default(now()) @map("update_at")
+  createdAt        DateTime @default(now()) @map("create_at")
+  updatedAt        DateTime @default(now()) @map("update_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -50,8 +50,8 @@ model Role {
   name        String
   description String?
   status      String   @default("ACTIVE")
-  createAt    DateTime @default(now()) @map("create_at")
-  updateAt    DateTime @default(now()) @map("update_at")
+  createdAt    DateTime @default(now()) @map("create_at")
+  updatedAt    DateTime @default(now()) @map("update_at")
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -63,7 +63,7 @@ model UserRole {
   id       String   @id @default(uuid())
   userId   String   @map("user_id")
   roleId   String   @map("role_id")
-  createAt DateTime @default(now()) @map("create_at")
+  createdAt DateTime @default(now()) @map("create_at")
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role     Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 

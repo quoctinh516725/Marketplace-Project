@@ -2,14 +2,16 @@ import { User } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
 import { UserStatus } from "../constants";
 import { PrismaType } from "../types";
+
 export interface CreateUserData {
   username: string;
   email: string;
   password: string;
   phone?: string;
 }
+
 export interface UpdateUserData {
-  fullname?: string;
+  fullName?: string;
   phone?: string;
   gender?: string;
   dateOfBirth?: Date;
@@ -31,6 +33,11 @@ class UserRepository {
       select: { id: true },
     });
     return exist !== null;
+  }
+  async findById(id: string): Promise<User | null> {
+    return await prisma.user.findUnique({
+      where: { id },
+    });
   }
   async create(client: PrismaType, data: CreateUserData): Promise<User> {
     const newUser = await client.user.create({
@@ -54,6 +61,15 @@ class UserRepository {
       where: {
         OR: [{ username: emailOrUsername }, { email: emailOrUsername }],
       },
+    });
+  }
+
+  async updateAvatar(id: string, avatarUrl: string): Promise<void> {
+    await prisma.user.update({
+      where: {
+        id,
+      },
+      data: { avatarUrl },
     });
   }
 }

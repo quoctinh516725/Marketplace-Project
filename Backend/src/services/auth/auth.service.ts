@@ -10,14 +10,17 @@ import {
   generateAccessToken,
   generateRefreshToken,
   getTokenRemainingTime,
+  TokenData,
+  verifyAccessToken,
 } from "../../utils/jwt";
-import { UserRole } from "../../constants";
+import { UserRole, UserStatus } from "../../constants";
 import userRoleRepository from "../../repositories/userRole.repository";
 import roleRepository from "../../repositories/role.repository";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import refreshTokenRepository from "../../repositories/refreshToken.repository";
-import { addUserCache } from "./auth.cache";
 import { prisma } from "../../config/prisma";
+import { addUserCache, deleteUserCache } from "../user/user.cache";
+import { addBlacklistToken } from "./auth.cache";
 
 export interface LoginData {
   emailOrUsername: string;
@@ -193,10 +196,68 @@ class AuthService {
   refreshToken = async (
     refreshToken: string,
   ): Promise<{ accessToken: string }> => {
-    return { accessToken: "123" };
+
+    //Check revoked
+    const refreshTokenFind =
+      await refreshTokenRepository.findByToken(refreshToken);
+    console.log(refreshTokenFind);
+
+    if (!refreshTokenFind || refreshTokenFind.revoked) {
+      throw new UnauthorizedError(
+        "RefreshToken không hợp lệ hoặc đã bị thu hồi!",
+      );
+    }
+
+    //Check exp
+    if (refreshTokenFind.expiredAt < new Date()) {
+      throw new UnauthorizedError("RefreshToken đã hết hạn!");
+    }
+
+    //Check User valid
+    const user = refreshTokenFind.user;
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedError("Tài khoản không hoạt động!");
+    }
+
+    //Get roles for token
+    const roles = await userRoleRepository.findRolesByUser(user.id);
+
+    //NOTE: Bổ sung get shopId
+
+    //Generate accessToken
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      roles,
+    });
+
+    const ttl = getTokenRemainingTime(accessToken);
+
+    //Update userCache
+    const { password, ...userCache } = user;
+    await addUserCache({ ...userCache, roles }, ttl);
+
+    return { accessToken };
   };
-  logout = async (req: Request, res: Response): Promise<void> => {
-    console.log(123);
+  logout = async (
+    userId: string,
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<void> => {
+    // Add Blacklist token
+    const ttl = getTokenRemainingTime(accessToken);
+    const decoded = verifyAccessToken(accessToken);
+    const jti = decoded.jti!;
+    if (ttl > 0) {
+      await addBlacklistToken(jti, ttl);
+    }
+
+    // Delete UserCache
+    await deleteUserCache(userId);
+
+    // Revoke RefreshToken
+    await refreshTokenRepository.revokeRefreshToken(refreshToken);
   };
 }
 
