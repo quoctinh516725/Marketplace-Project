@@ -7,30 +7,30 @@ export interface CreateRefreshTokenData {
   expiredAt: Date;
 }
 class RefreshTokenRepository {
-  async findByToken(
+  findByToken = async (
     token: string,
-  ): Promise<(RefreshToken & { user: User }) | null> {
+  ): Promise<(RefreshToken & { user: User }) | null> => {
     return await prisma.refreshToken.findUnique({
       where: { token },
       include: { user: true },
     });
-  }
-  async revokeRefreshToken(token: string): Promise<void> {
+  };
+  revokeRefreshToken = async (token: string): Promise<void> => {
     await prisma.refreshToken.update({
       where: { token, revoked: false },
       data: { revoked: true },
     });
-  }
-  async create(
+  };
+  create = async (
     client: PrismaType,
     data: CreateRefreshTokenData,
-  ): Promise<void> {
+  ): Promise<void> => {
     await client.refreshToken.create({ data });
-  }
-  async revokeAllRefreshToken(
+  };
+  revokeAllRefreshToken = async (
     client: PrismaType,
     userId: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     await client.refreshToken.updateMany({
       where: {
         userId,
@@ -38,7 +38,7 @@ class RefreshTokenRepository {
       },
       data: { revoked: true },
     });
-  }
+  };
 }
 
 export default new RefreshTokenRepository();

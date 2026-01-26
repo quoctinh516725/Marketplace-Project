@@ -8,19 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  username      String    @unique
-  phone         String?
-  password      String
-  fullName      String?   @map("full_name")
-  avatarUrl     String?   @map("avatar_url")
-  gender        String?
+  id          String    @id @default(uuid())
+  email       String    @unique
+  username    String    @unique
+  phone       String?
+  password    String
+  fullName    String?   @map("full_name")
+  avatarUrl   String?   @map("avatar_url")
+  gender      String?
   dateOfBirth DateTime? @map("date_of_birth")
-  status        String    @default("ACTIVE")
-  lastLoginAt   DateTime? @map("last_login_at")
-  createdAt      DateTime  @default(now()) @map("create_at")
-  updatedAt      DateTime  @default(now()) @map("update_at")
+  status      String    @default("ACTIVE")
+  lastLoginAt DateTime? @map("last_login_at")
+  deletedAt   DateTime? @map("delete_at")
+  createdAt   DateTime  @default(now()) @map("create_at")
+  updatedAt   DateTime  @default(now()) @map("update_at")
 
   addresses     UserAddress[]
   userRoles     UserRole[]
@@ -36,8 +37,8 @@ model UserAddress {
   receiverAddress String   @map("receiver_address")
   receiverPhone   String   @map("receiver_phone")
   isDefault       Boolean  @map("is_default")
-  createdAt        DateTime @default(now()) @map("create_at")
-  updatedAt        DateTime @default(now()) @map("update_at")
+  createdAt       DateTime @default(now()) @map("create_at")
+  updatedAt       DateTime @default(now()) @map("update_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -50,8 +51,8 @@ model Role {
   name        String
   description String?
   status      String   @default("ACTIVE")
-  createdAt    DateTime @default(now()) @map("create_at")
-  updatedAt    DateTime @default(now()) @map("update_at")
+  createdAt   DateTime @default(now()) @map("create_at")
+  updatedAt   DateTime @default(now()) @map("update_at")
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -60,12 +61,12 @@ model Role {
 }
 
 model UserRole {
-  id       String   @id @default(uuid())
-  userId   String   @map("user_id")
-  roleId   String   @map("role_id")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
   createdAt DateTime @default(now()) @map("create_at")
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role     Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@map("user_roles")

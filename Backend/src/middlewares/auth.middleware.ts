@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
-import { UnauthorizedError } from "../error/AppError";
+import { ForbiddenError, UnauthorizedError } from "../error/AppError";
 import { isBlacklistToken } from "../services/auth/auth.cache";
 import { DecodedToken, verifyAccessToken } from "../utils/jwt";
 import { getUserCache } from "../services/user/user.cache";
-import { UserStatus } from "../constants";
+import { UserRole, UserStatus } from "../constants";
 
 declare global {
   namespace Express {
@@ -54,3 +54,23 @@ export const authenticate = asyncHandler(
     next();
   },
 );
+
+export const requireRole = (roleCodes: UserRole[]) =>
+  asyncHandler(
+    async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+      if (!req.user) {
+        throw new UnauthorizedError("Vui lòng đăng nhập tài khoản!");
+      }
+
+      const roles = req.user.roles ?? [];
+
+      //Pypass Admin
+      if (roles.includes(UserRole.ADMIN)) return next();
+
+      //Check role
+      for (const r of roleCodes) {
+        if (roles.includes(r as UserRole)) return next();
+      }
+      throw new ForbiddenError("Không có quyền truy cập!");
+    },
+  );
