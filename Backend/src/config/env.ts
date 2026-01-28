@@ -27,4 +27,5 @@ export const env = {
   JWT_REFRESH_EXPIRES_IN: required("JWT_REFRESH_EXPIRES_IN"),
 
   NODE_ENV: required("NODE_ENV"),
+  CLOUDINARY_URL: required("CLOUDINARY_URL"),
 };

@@ -8,23 +8,25 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  username      String    @unique
-  phone         String?
-  password      String
-  fullName      String?   @map("full_name")
-  avatarUrl     String?   @map("avatar_url")
-  gender        String?
-  date_of_birth DateTime? @map("dateOfBirth")
-  status        String    @default("ACTIVE")
-  lastLoginAt   DateTime? @map("last_login_at")
-  createAt      DateTime  @default(now()) @map("create_at")
-  updateAt      DateTime  @default(now()) @map("update_at")
+  id          String    @id @default(uuid())
+  email       String    @unique
+  username    String    @unique
+  phone       String?
+  password    String
+  fullName    String?   @map("full_name")
+  avatarUrl   String?   @map("avatar_url")
+  gender      String?
+  dateOfBirth DateTime? @map("date_of_birth")
+  status      String    @default("ACTIVE")
+  lastLoginAt DateTime? @map("last_login_at")
+  deletedAt   DateTime? @map("delete_at")
+  createdAt   DateTime  @default(now()) @map("create_at")
+  updatedAt   DateTime  @default(now()) @map("update_at")
 
-  addresses     UserAddress[]
-  userRoles     UserRole[]
-  refreshTokens RefreshToken[]
+  addresses       UserAddress[]
+  userRoles       UserRole[]
+  refreshTokens   RefreshToken[]
+  userPermissions UserPermission[]
 
   @@map("users")
 }
@@ -36,8 +38,8 @@ model UserAddress {
   receiverAddress String   @map("receiver_address")
   receiverPhone   String   @map("receiver_phone")
   isDefault       Boolean  @map("is_default")
-  createAt        DateTime @default(now()) @map("create_at")
-  updateAt        DateTime @default(now()) @map("update_at")
+  createdAt       DateTime @default(now()) @map("create_at")
+  updatedAt       DateTime @default(now()) @map("update_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -50,8 +52,8 @@ model Role {
   name        String
   description String?
   status      String   @default("ACTIVE")
-  createAt    DateTime @default(now()) @map("create_at")
-  updateAt    DateTime @default(now()) @map("update_at")
+  createdAt   DateTime @default(now()) @map("create_at")
+  updatedAt   DateTime @default(now()) @map("update_at")
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -60,12 +62,12 @@ model Role {
 }
 
 model UserRole {
-  id       String   @id @default(uuid())
-  userId   String   @map("user_id")
-  roleId   String   @map("role_id")
-  createAt DateTime @default(now()) @map("create_at")
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role     Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("create_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@map("user_roles")
@@ -79,6 +81,7 @@ model Permission {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   rolePermissions RolePermission[]
+  userPermissions UserPermission[]
 
   @@map("permissions")
 }
@@ -94,6 +97,19 @@ model RolePermission {
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String   @default(uuid())
+  userId       String   @map("user_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
 }
 
 model RefreshToken {

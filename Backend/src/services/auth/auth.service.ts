@@ -1,15 +1,24 @@
-import { Request, Response } from "express";
 import userRepository from "../../repositories/user.repository";
-import { ConflictError, ValidationError } from "../../error/AppError";
+import { ConflictError, UnauthorizedError } from "../../error/AppError";
 import bcrypt from "bcrypt";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt";
-import { UserRole } from "../../constants";
-import userRoleRepository from "../../repositories/userRole.repository";
-import roleRepository from "../../repositories/role.repository";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  getTokenRemainingTime,
+  verifyAccessToken,
+} from "../../utils/jwt";
+import { UserRole, UserStatus } from "../../constants";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import refreshTokenRepository from "../../repositories/refreshToken.repository";
-import { addUserCache } from "./auth.cache";
-import { User } from "../../../generated/prisma/browser";
+import { prisma } from "../../config/prisma";
+import {
+  addAuthUserCache,
+  addBlacklistToken,
+  deleteAuthUserCache,
+} from "./auth.cache";
+import userService from "../user/user.service";
+import roleService from "../role/role.service";
+import roleRepository from "../../repositories/role.repository";
 
 export interface LoginData {
   emailOrUsername: string;
@@ -36,8 +45,71 @@ export interface AuthResponse {
 }
 
 class AuthService {
-  login = async (data: LoginData): Promise<void> => {
-    
+  login = async (data: LoginData): Promise<AuthResponse> => {
+    const { emailOrUsername, password } = data;
+    // Check exist
+    const user = await userRepository.existEmailOrUsername(emailOrUsername);
+    if (!user)
+      throw new UnauthorizedError("Email hoặc Username không tồn tại!");
+
+    // Compare Password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) throw new ConflictError("Password không hợp lệ!");
+
+    //Get roles for generate token
+    const roles = await roleRepository.findRolesByUser(user.id);
+
+    //Get accessToken
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+    });
+
+    //Get ttl for Add Cache
+    const ttl = getTokenRemainingTime(accessToken);
+
+    // Add cache
+    await addAuthUserCache(
+      { id: user.id, status: user.status as UserStatus, roles },
+      ttl,
+    );
+
+    //Get refresh token
+    const refreshToken = generateRefreshToken(user.id);
+
+    //Get expiredAt for Create refreshToken
+    const decoded = jwt.decode(refreshToken) as JwtPayload;
+    const expiredAt = new Date(decoded.exp! * 1000);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Update lastLoginAt
+      await userRepository.update(tx, user.id, { lastLoginAt: new Date() });
+
+      // Revoke All RefreshToken
+      await refreshTokenRepository.revokeAllRefreshToken(tx, user.id);
+
+      //Create refresh token DB
+      await refreshTokenRepository.create(tx, {
+        userId: user.id,
+        token: refreshToken,
+        expiredAt,
+      });
+
+      return {
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          status: user.status,
+        },
+        accessToken,
+        refreshToken,
+      };
+    });
+    return result;
   };
   register = async (data: RegisterData): Promise<AuthResponse> => {
     const { email, username, password } = data;
@@ -47,71 +119,137 @@ class AuthService {
     if (existEmail) {
       throw new ConflictError("Email đã tồn tại!");
     }
+
     //Check username
     const existUsername = await userRepository.existUsername(username);
     if (existUsername) {
       throw new ConflictError("Username đã tồn tại!");
     }
+
     //Hash Password
     const salt = 10;
     const password_hash = await bcrypt.hash(password, salt);
+
     //Check Role
     const roleCodes = [UserRole.USER]; // Khởi tạo Role là User
-    const roles = await roleRepository.validateRoles(roleCodes);
-    if (!roles) {
-      throw new ValidationError("Role được gán không tồn tại!");
-    }
-    //Create User
-    const newUser = await userRepository.create({
-      ...data,
-      password: password_hash,
-    });
-    //Gán role
 
-    await userRoleRepository.assignRolesToUser(
-      newUser.id,
-      roles.map((r) => r.id),
-    );
+    const result = await prisma.$transaction(async (tx) => {
+      //Create User
+      const newUser = await userRepository.create(tx, {
+        ...data,
+        password: password_hash,
+      });
+
+      //Gán role
+      await roleService.asignRoleToUser(tx, newUser.id, roleCodes, false);
+
+      //Sinh Refresh Token
+      const refreshToken = generateRefreshToken(newUser.id);
+      const decoded = jwt.decode(refreshToken) as JwtPayload;
+      const expiredAt = new Date(decoded.exp! * 1000);
+      //Lưu Refresh Token vào DB
+      await refreshTokenRepository.create(tx, {
+        userId: newUser.id,
+        token: refreshToken,
+        expiredAt,
+      });
+      return {
+        newUser,
+        refreshToken,
+      };
+    });
+
     //Sinh Access Token
     const accessToken = generateAccessToken({
-      userId: newUser.id,
+      userId: result.newUser.id,
       email,
       username,
-      roles: roles.map((r) => r.code),
     });
-    //Sinh Refresh Token
-    const refreshToken = generateRefreshToken(newUser.id);
-    //Lưu Refresh Token vào DB
-    const payload = jwt.decode(refreshToken) as JwtPayload;
-    const expiredAt = new Date(payload.exp! * 1000);
-    await refreshTokenRepository.create({
-      userId: newUser.id,
-      token: refreshToken,
-      expiredAt,
-    });
+
     //Cache thông tin user
-    const { password: hiddenPassword, ...user } = newUser;
-    await addUserCache({ ...user, roles: roles.map((r) => r.code) });
+    const ttl = getTokenRemainingTime(accessToken);
+    const { password: hiddenPassword, ...user } = result.newUser;
+    await addAuthUserCache(
+      { id: user.id, status: user.status as UserStatus, roles: roleCodes },
+      ttl,
+    );
     return {
       user: {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-        fullName: newUser.fullName,
-        avatarUrl: newUser.avatarUrl,
-        status: newUser.status,
+        id: result.newUser.id,
+        username: result.newUser.username,
+        email: result.newUser.email,
+        fullName: result.newUser.fullName,
+        avatarUrl: result.newUser.avatarUrl,
+        status: result.newUser.status,
       },
       accessToken,
-      refreshToken,
+      refreshToken: result.refreshToken,
     };
   };
   refreshToken = async (
     refreshToken: string,
   ): Promise<{ accessToken: string }> => {
-    return { accessToken: "123" };
+    //Check revoked
+    const refreshTokenFind =
+      await refreshTokenRepository.findByToken(refreshToken);
+
+    if (!refreshTokenFind || refreshTokenFind.revoked) {
+      throw new UnauthorizedError(
+        "RefreshToken không hợp lệ hoặc đã bị thu hồi!",
+      );
+    }
+
+    //Check exp
+    if (refreshTokenFind.expiredAt < new Date()) {
+      throw new UnauthorizedError("RefreshToken đã hết hạn!");
+    }
+
+    //Check User valid
+    const user = refreshTokenFind.user;
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedError("Tài khoản không hoạt động!");
+    }
+
+    //Get roles for token
+    const roles = await roleRepository.findRolesByUser(user.id);
+
+    //NOTE: Bổ sung get shopId
+
+    //Generate accessToken
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+    });
+
+    const ttl = getTokenRemainingTime(accessToken);
+
+    //Update userCache
+    await addAuthUserCache(
+      { id: user.id, status: user.status as UserStatus, roles },
+      ttl,
+    );
+    return { accessToken };
   };
-  logout = async (req: Request, res: Response): Promise<void> => {
-    console.log(123);
+  logout = async (
+    userId: string,
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<void> => {
+    // Add Blacklist token
+    const ttl = getTokenRemainingTime(accessToken);
+    const decoded = verifyAccessToken(accessToken);
+    const jti = decoded.jti!;
+    if (ttl > 0) {
+      await addBlacklistToken(jti, ttl);
+    }
+
+    // Delete UserCache
+
+    await deleteAuthUserCache(userId);
+
+    // Revoke RefreshToken
+    await refreshTokenRepository.revokeRefreshToken(refreshToken);
   };
 }
 

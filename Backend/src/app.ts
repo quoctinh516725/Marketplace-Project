@@ -4,7 +4,8 @@ import cors from "cors";
 import { env } from "./config/env";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/errorMiddleware";
-import authRoute from "./routes/auth.route";
+
+import apiRoute from "./routes";
 
 const PORT = env.PORT;
 
@@ -41,7 +42,7 @@ app.use("/check", (req, res) => {
   });
 });
 
-app.use("/api/auth", authRoute);
+app.use("/api", apiRoute);
 
 app.use(errorHandler);
 
