@@ -21,7 +21,13 @@ router.use("/users", userRoute);
 const roleRoute = Router();
 roleRoute.use(requireRole([UserRole.ADMIN]));
 
-roleRoute.post("/user/:id", roleController.asignRoleToUser);
+roleRoute.get("/", roleController.getAllRoles);
+roleRoute.post("/", roleController.create);
+roleRoute.patch("/:id", roleController.updateRole);
+roleRoute.delete("/:id", roleController.delete);
+
+roleRoute.post("/:id/users", roleController.asignRoleToUser);
+roleRoute.delete("/:roleCode/users/:id", roleController.revokeRoleFromUser);
 router.use("/roles", roleRoute);
 
 export default router;

@@ -24,3 +24,8 @@ export type UserProfileResponse = {
   avatarUrl?: string;
   fullName?: string;
 };
+
+export type UserProfileWithRoles = {
+  profile: UserProfileResponse;
+  roleCodes: string[];
+};

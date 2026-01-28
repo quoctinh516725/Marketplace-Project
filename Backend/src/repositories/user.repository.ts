@@ -1,13 +1,17 @@
 import { Prisma, User } from "../../generated/prisma/client";
+import { CacheKey } from "../cache/cache.key";
+import { CacheTTL } from "../cache/cache.ttl";
 import { prisma } from "../config/prisma";
-import { UserStatus } from "../constants";
-import { getAllInput, PrismaType } from "../types";
+import { UserRole, UserStatus } from "../constants";
+import { RoleStatus } from "../constants/roleStatus";
+import { InputAll, PrismaType } from "../types";
 import {
   UserAllResponse,
-  UserInforResponse,
   UserProfileResponse,
+  UserProfileWithRoles,
   UserUpdateResponse,
 } from "../types/user.type";
+import { cacheAsync } from "../utils/cache";
 
 export interface CreateUserData {
   username: string;
@@ -26,13 +30,16 @@ export interface UpdateUserData {
   deletedAt?: Date;
 }
 
-export type UserWithRoles = Prisma.UserGetPayload<{
-  include: {
-    userRoles: {
-      include: { role: true };
+export type UserWithRoles = Omit<
+  Prisma.UserGetPayload<{
+    include: {
+      userRoles: {
+        include: { role: true };
+      };
     };
-  };
-}>;
+  }>,
+  "password"
+>;
 
 class UserRepository {
   create = async (client: PrismaType, data: CreateUserData): Promise<User> => {
@@ -53,7 +60,7 @@ class UserRepository {
     });
     return updatedUser;
   };
-  getUsers = async (input: getAllInput): Promise<UserAllResponse> => {
+  getUsers = async (input: InputAll): Promise<UserAllResponse> => {
     const { status, page, limit, search } = input;
 
     const skip = (page - 1) * limit;
@@ -86,6 +93,7 @@ class UserRepository {
       where: { email },
       select: { id: true },
     });
+
     return exist !== null;
   };
   existUsername = async (username: string): Promise<boolean> => {
@@ -95,29 +103,49 @@ class UserRepository {
     });
     return exist !== null;
   };
-  getProfile = async (id: string): Promise<UserProfileResponse | null> => {
+  getProfile = async (id: string): Promise<UserProfileWithRoles | null> => {
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, username: true, avatarUrl: true, fullName: true },
+      select: {
+        id: true,
+        username: true,
+        avatarUrl: true,
+        fullName: true,
+        userRoles: {
+          select: {
+            role: {
+              select: { code: true },
+            },
+          },
+        },
+      },
     });
     if (!user) return null;
 
     return {
-      id: user.id,
-      username: user.username,
-      fullName: user.fullName ?? undefined,
-      avatarUrl: user.avatarUrl ?? undefined,
+      profile: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName ?? undefined,
+        avatarUrl: user.avatarUrl ?? undefined,
+      },
+      roleCodes: user.userRoles.map((ur) => ur.role.code),
     };
   };
 
-  findById = async (id: string): Promise<UserWithRoles | null> => {
-    return await prisma.user.findUnique({
+  findById = async (
+    client: PrismaType,
+    id: string,
+  ): Promise<UserWithRoles | null> => {
+    return await client.user.findUnique({
       where: { id },
       include: {
         userRoles: {
           include: { role: true },
+          where: { role: { status: RoleStatus.ACTIVE } },
         },
       },
+      omit: { password: true },
     });
   };
 

@@ -1,4 +1,4 @@
-export type getAllInput = {
+export type InputAll = {
   status?: string;
   search?: string;
   page: number;

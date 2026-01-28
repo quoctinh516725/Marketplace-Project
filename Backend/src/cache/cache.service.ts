@@ -19,14 +19,6 @@ class CacheService {
       console.log(`Lỗi khi set cache với ${key}: ${error}`);
     }
   }
-  async delete(key: string | string[]): Promise<void> {
-    try {
-      const keys = Array.isArray(key) ? key : [key];
-      await redis.del(...keys);
-    } catch (error) {
-      console.log(`Lỗi khi xóa cache với ${key}: ${error}`);
-    }
-  }
 }
 
 export default new CacheService();

@@ -23,9 +23,10 @@ model User {
   createdAt   DateTime  @default(now()) @map("create_at")
   updatedAt   DateTime  @default(now()) @map("update_at")
 
-  addresses     UserAddress[]
-  userRoles     UserRole[]
-  refreshTokens RefreshToken[]
+  addresses       UserAddress[]
+  userRoles       UserRole[]
+  refreshTokens   RefreshToken[]
+  userPermissions UserPermission[]
 
   @@map("users")
 }
@@ -80,6 +81,7 @@ model Permission {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   rolePermissions RolePermission[]
+  userPermissions UserPermission[]
 
   @@map("permissions")
 }
@@ -95,6 +97,19 @@ model RolePermission {
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String   @default(uuid())
+  userId       String   @map("user_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
 }
 
 model RefreshToken {

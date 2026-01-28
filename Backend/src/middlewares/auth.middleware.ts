@@ -1,10 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ForbiddenError, UnauthorizedError } from "../error/AppError";
-import { isBlacklistToken } from "../services/auth/auth.cache";
-import { DecodedToken, verifyAccessToken } from "../utils/jwt";
-import { getUserCache } from "../services/user/user.cache";
+import {
+  addAuthUserCache,
+  getAuthUserCache,
+  isBlacklistToken,
+} from "../services/auth/auth.cache";
+import {
+  DecodedToken,
+  getTokenRemainingTime,
+  verifyAccessToken,
+} from "../utils/jwt";
 import { UserRole, UserStatus } from "../constants";
+import userRepository from "../repositories/user.repository";
+import { CacheKey } from "../cache/cache.key";
+import { CacheTTL } from "../cache/cache.ttl";
+import { prisma } from "../config/prisma";
 
 declare global {
   namespace Express {
@@ -33,16 +44,26 @@ export const authenticate = asyncHandler(
       throw new UnauthorizedError("Token đã bị vô hiệu!");
     }
 
-    //Check User Active
-    const userCache = await getUserCache(decoded.userId);
+    //Get cache check User Active
+    let userCache = await getAuthUserCache(decoded.userId);
     if (!userCache) {
-      throw new UnauthorizedError(
-        "Phiên hoạt động không tồn tại hoặc hết hạn!",
-      );
-    }
+      const user = await userRepository.findById(prisma, decoded.userId);
 
-    if (userCache.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedError("Tài khoản đã bị vô hiệu hóa!");
+      if (!user) throw new UnauthorizedError("Tài khoản không tồn tại!");
+
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedError("Tài khoản đã bị vô hiệu hóa!");
+      }
+      const roles = user.userRoles.map((ur) => ur.role.code);
+
+      userCache = {
+        id: user.id,
+        status: user.status,
+        roles,
+      };
+
+      const ttl = getTokenRemainingTime(token);
+      await addAuthUserCache(userCache, ttl);
     }
 
     // Gán role và shopId mới nhất trong trường hợp người dùng đăng ký shop hoặc admin chỉnh sửa role trong phiên hoạt động

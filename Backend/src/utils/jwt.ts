@@ -6,7 +6,6 @@ export interface TokenData {
   userId: string;
   email: string;
   username: string;
-  roles: string[];
   shopId?: string;
 }
 
@@ -14,6 +13,7 @@ export interface DecodedToken extends TokenData {
   iat?: number;
   exp?: number;
   jti?: string;
+  roles?: string[];
 }
 
 export const generateAccessToken = (data: TokenData): string => {
