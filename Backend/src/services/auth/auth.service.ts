@@ -1,5 +1,11 @@
 import userRepository from "../../repositories/user.repository";
-import { ConflictError, UnauthorizedError } from "../../error/AppError";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../error/AppError";
 import bcrypt from "bcrypt";
 import {
   generateAccessToken,
@@ -19,6 +25,7 @@ import {
 import userService from "../user/user.service";
 import roleService from "../role/role.service";
 import roleRepository from "../../repositories/role.repository";
+import permissionRepository from "../../repositories/permission.repository";
 
 export interface LoginData {
   emailOrUsername: string;
@@ -48,17 +55,39 @@ class AuthService {
   login = async (data: LoginData): Promise<AuthResponse> => {
     const { emailOrUsername, password } = data;
     // Check exist
+
     const user = await userRepository.existEmailOrUsername(emailOrUsername);
+
     if (!user)
       throw new UnauthorizedError("Email hoặc Username không tồn tại!");
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenError("Tài khoản đã bị vô hiệu hóa!");
+    }
 
     // Compare Password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new ConflictError("Password không hợp lệ!");
+    if (!isPasswordValid) throw new UnauthorizedError("Password không hợp lệ!");
 
-    //Get roles for generate token
-    const roles = await roleRepository.findRolesByUser(user.id);
+    //Get roles and permission for generate token
+    const { roleCodes, roleIds } = await roleRepository.findRolesByUser(
+      user.id,
+    );
+    if (!roleCodes || roleCodes.length === 0)
+      throw new NotFoundError("Không tồn tại chức năng của người dùng!");
 
+    //Permission default with role
+    const rolePermission =
+      await permissionRepository.getPermissionsByRole(roleIds);
+
+    //Permission own User
+    const userPermission = await permissionRepository.getPermissionsByUser(
+      user.id,
+    );
+    if (rolePermission.length === 0) {
+      throw new ForbiddenError("Tài khoản chưa được cấp quyền!");
+    }
+
+    const permissions = [...new Set([...rolePermission, ...userPermission])];
     //Get accessToken
     const accessToken = generateAccessToken({
       userId: user.id,
@@ -71,7 +100,12 @@ class AuthService {
 
     // Add cache
     await addAuthUserCache(
-      { id: user.id, status: user.status as UserStatus, roles },
+      {
+        id: user.id,
+        status: user.status as UserStatus,
+        roles: roleCodes,
+        permissions,
+      },
       ttl,
     );
 
@@ -131,7 +165,18 @@ class AuthService {
     const password_hash = await bcrypt.hash(password, salt);
 
     //Check Role
-    const roleCodes = [UserRole.USER]; // Khởi tạo Role là User
+    const roleCode = UserRole.USER; // Khởi tạo Role là User
+    const role = await roleRepository.findRoleByCode(roleCode);
+    if (!role) throw new ValidationError("Chức năng không tồn tại!");
+
+    //Get permission
+    const permissions = await permissionRepository.getPermissionsByRole([
+      role.id,
+    ]);
+
+    if (permissions.length === 0) {
+      throw new ForbiddenError("Tài khoản chưa được cấp quyền!");
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       //Create User
@@ -141,7 +186,7 @@ class AuthService {
       });
 
       //Gán role
-      await roleService.asignRoleToUser(tx, newUser.id, roleCodes, false);
+      await roleService.asignRoleToUser(tx, newUser.id, [roleCode], false);
 
       //Sinh Refresh Token
       const refreshToken = generateRefreshToken(newUser.id);
@@ -170,7 +215,12 @@ class AuthService {
     const ttl = getTokenRemainingTime(accessToken);
     const { password: hiddenPassword, ...user } = result.newUser;
     await addAuthUserCache(
-      { id: user.id, status: user.status as UserStatus, roles: roleCodes },
+      {
+        id: user.id,
+        status: user.status as UserStatus,
+        roles: [roleCode],
+        permissions,
+      },
       ttl,
     );
     return {
@@ -211,7 +261,23 @@ class AuthService {
     }
 
     //Get roles for token
-    const roles = await roleRepository.findRolesByUser(user.id);
+    const { roleCodes, roleIds } = await roleRepository.findRolesByUser(
+      user.id,
+    );
+    if (!roleCodes || roleCodes.length === 0)
+      throw new NotFoundError("Không tồn tại chức năng của người dùng!");
+
+    //Permission default with role
+    const permissions =
+      await permissionRepository.getPermissionsByRole(roleIds);
+
+    //Permission own User
+    const userPermission = await permissionRepository.getPermissionsByUser(
+      user.id,
+    );
+    if (permissions.length === 0) {
+      throw new ForbiddenError("Tài khoản chưa được cấp quyền!");
+    }
 
     //NOTE: Bổ sung get shopId
 
@@ -226,7 +292,12 @@ class AuthService {
 
     //Update userCache
     await addAuthUserCache(
-      { id: user.id, status: user.status as UserStatus, roles },
+      {
+        id: user.id,
+        status: user.status as UserStatus,
+        roles: roleCodes,
+        permissions,
+      },
       ttl,
     );
     return { accessToken };

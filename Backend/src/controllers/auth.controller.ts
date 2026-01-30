@@ -14,7 +14,9 @@ class AuthController {
       emailOrUsername,
       password,
     });
+
     const result = await authService.login(dataValidated);
+
     const { refreshToken, ...data } = result;
     setRefreshTokenCookie(res, refreshToken);
     sendSuccess(res, data, "Đăng nhập thành công!");

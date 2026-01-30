@@ -3,12 +3,14 @@ import { CacheKey } from "../cache/cache.key";
 import { CacheTTL } from "../cache/cache.ttl";
 import { prisma } from "../config/prisma";
 import { UserRole, UserStatus } from "../constants";
+import { PermissionStatus } from "../constants/permissionStatus";
 import { RoleStatus } from "../constants/roleStatus";
 import { InputAll, PrismaType } from "../types";
 import {
   UserAllResponse,
   UserProfileResponse,
   UserProfileWithRoles,
+  UserResponse,
   UserUpdateResponse,
 } from "../types/user.type";
 import { cacheAsync } from "../utils/cache";
@@ -30,11 +32,14 @@ export interface UpdateUserData {
   deletedAt?: Date;
 }
 
-export type UserWithRoles = Omit<
+export type UserCache = Omit<
   Prisma.UserGetPayload<{
     include: {
       userRoles: {
         include: { role: true };
+      };
+      userPermissions: {
+        include: { permission: true };
       };
     };
   }>,
@@ -52,7 +57,7 @@ class UserRepository {
     client: PrismaType,
     id: string,
     data: UpdateUserData,
-  ): Promise<UserUpdateResponse> => {
+  ): Promise<UserUpdateResponse | null> => {
     const updatedUser = await client.user.update({
       where: { id },
       data,
@@ -70,9 +75,9 @@ class UserRepository {
     if (status) where = status ? { status: status } : {};
     if (search) {
       where.OR = [
-        { email: { contains: search }, mode: "insensitive" },
-        { username: { contains: search }, mode: "insensitive" },
-        { fullName: { contains: search }, mode: "insensitive" },
+        { email: { contains: search, mode: "insensitive" } },
+        { username: { contains: search, mode: "insensitive" } },
+        { fullName: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -136,13 +141,17 @@ class UserRepository {
   findById = async (
     client: PrismaType,
     id: string,
-  ): Promise<UserWithRoles | null> => {
+  ): Promise<UserCache | null> => {
     return await client.user.findUnique({
       where: { id },
       include: {
         userRoles: {
           include: { role: true },
           where: { role: { status: RoleStatus.ACTIVE } },
+        },
+        userPermissions: {
+          include: { permission: true },
+          where: { permission: { status: PermissionStatus.ACTIVE } },
         },
       },
       omit: { password: true },
@@ -158,12 +167,16 @@ class UserRepository {
       },
     });
   };
-  updateAvatar = async (id: string, avatarUrl: string): Promise<void> => {
-    await prisma.user.update({
+  updateAvatar = async (
+    id: string,
+    avatarUrl: string,
+  ): Promise<UserResponse | null> => {
+    return await prisma.user.update({
       where: {
         id,
       },
       data: { avatarUrl },
+      omit: { password: true },
     });
   };
 }

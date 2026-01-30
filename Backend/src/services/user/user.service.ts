@@ -15,6 +15,7 @@ import {
   UserAllResponse,
   UserInforResponse,
   UserProfileResponse,
+  UserResponse,
   UserUpdateResponse,
 } from "../../types/user.type";
 import { DecodedToken } from "../../utils/jwt";
@@ -37,6 +38,8 @@ class UserService {
         ]);
 
         if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+        if (roles.length === 0)
+          throw new NotFoundError("Không tồn tại chức năng của người dùng!");
         return {
           data: { ...user, roles },
           tags: roles.map((r) => `role:${r}`),
@@ -45,7 +48,7 @@ class UserService {
     );
   };
   getUsers = async (input: InputAll): Promise<UserAllResponse> => {
-    const { status, page, limit, search } = input;
+    const { page, limit, status, search } = input;
 
     //Validate status
     if (status && !Object.values(UserStatus).includes(status as UserStatus)) {
@@ -90,6 +93,8 @@ class UserService {
     ]);
 
     if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+    if (roles.length === 0)
+      throw new NotFoundError("Không tồn tại chức năng của người dùng!");
     return { ...user, roles };
   };
 
@@ -97,14 +102,16 @@ class UserService {
     userId: string,
     data: UpdateUserData,
   ): Promise<UserUpdateResponse> => {
-    const user = await userRepository.findById(prisma, userId);
-    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
-
     const userUpdated = await userRepository.update(prisma, userId, data);
-    await deleteUserCache(user.id);
+    if (!userUpdated) throw new NotFoundError("Người dùng không tồn tại!");
+
+    await deleteUserCache(userUpdated.id);
     return userUpdated;
   };
-  delete = async (id: string, currentUser: DecodedToken): Promise<void> => {
+  delete = async (
+    id: string,
+    currentUser: DecodedToken,
+  ): Promise<UserUpdateResponse> => {
     const user = await userRepository.findById(prisma, id);
     if (!user) throw new NotFoundError("Người dùng không tồn tại!");
     if (user.deletedAt) throw new ConflictError("Người dùng đã bị xóa!");
@@ -117,15 +124,21 @@ class UserService {
       throw new ForbiddenError("Không có quyền xóa Admin!");
     }
 
-    await userRepository.update(prisma, user.id, {
+    const result = await userRepository.update(prisma, user.id, {
       status: UserStatus.DELETED,
       deletedAt: new Date(),
     });
     await deleteUserCache(user.id);
+    return result!;
   };
-  updateAvatar = async (userId: string, avatarUrl: string): Promise<void> => {
-    await userRepository.updateAvatar(userId, avatarUrl);
+  updateAvatar = async (
+    userId: string,
+    avatarUrl: string,
+  ): Promise<UserUpdateResponse> => {
+    const result = await userRepository.updateAvatar(userId, avatarUrl);
+    if (!result) throw new NotFoundError("Người dùng không tồn tại!");
     await deleteUserCache(userId);
+    return result;
   };
 }
 export default new UserService();

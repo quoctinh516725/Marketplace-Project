@@ -8,6 +8,7 @@ export type AuthUserCache = {
   id: string;
   status: UserStatus;
   roles: string[];
+  permissions: string[];
 };
 
 export async function addBlacklistToken(jti: string, ttl: number) {

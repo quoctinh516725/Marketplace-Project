@@ -16,12 +16,15 @@ import userRepository from "../repositories/user.repository";
 import { CacheKey } from "../cache/cache.key";
 import { CacheTTL } from "../cache/cache.ttl";
 import { prisma } from "../config/prisma";
+import { PermissionCode } from "../constants/permissionCode";
+import permissionRepository from "../repositories/permission.repository";
 
 declare global {
   namespace Express {
     interface Request {
       user?: DecodedToken;
       token?: string;
+      roles?: string[];
     }
   }
 }
@@ -54,12 +57,24 @@ export const authenticate = asyncHandler(
       if (user.status !== UserStatus.ACTIVE) {
         throw new UnauthorizedError("Tài khoản đã bị vô hiệu hóa!");
       }
-      const roles = user.userRoles.map((ur) => ur.role.code);
+      const roleCodes = user.userRoles.map((ur) => ur.role.code);
+      const roleIds = user.userRoles.map((ur) => ur.roleId);
+
+      const rolePermissions =
+        await permissionRepository.getPermissionsByRole(roleIds);
+      const userPermissions = user.userPermissions.map(
+        (up) => up.permission.code,
+      );
+
+      const permissions = [
+        ...new Set([...rolePermissions, ...userPermissions]),
+      ];
 
       userCache = {
         id: user.id,
         status: user.status,
-        roles,
+        roles: roleCodes,
+        permissions,
       };
 
       const ttl = getTokenRemainingTime(token);
@@ -69,6 +84,7 @@ export const authenticate = asyncHandler(
     // Gán role và shopId mới nhất trong trường hợp người dùng đăng ký shop hoặc admin chỉnh sửa role trong phiên hoạt động
     // NOTE: BỔ SUNG SHOP SAU
     decoded.roles = userCache.roles;
+    decoded.permissions = userCache.permissions;
 
     req.user = decoded;
     req.token = token;
@@ -91,6 +107,26 @@ export const requireRole = (roleCodes: UserRole[]) =>
       //Check role
       for (const r of roleCodes) {
         if (roles.includes(r as UserRole)) return next();
+      }
+      throw new ForbiddenError("Không có quyền truy cập!");
+    },
+  );
+
+export const requirePermission = (permissionCodes: PermissionCode[]) =>
+  asyncHandler(
+    async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+      if (!req.user) {
+        throw new UnauthorizedError("Vui lòng đăng nhập tài khoản!");
+      }
+
+      const permissions = req.user.permissions ?? [];
+
+      //Pypass Admin
+      if (req.user.roles!.includes(UserRole.ADMIN)) return next();
+
+      //Check role
+      for (const p of permissionCodes) {
+        if (permissions.includes(p)) return next();
       }
       throw new ForbiddenError("Không có quyền truy cập!");
     },
