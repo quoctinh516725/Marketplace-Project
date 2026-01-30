@@ -1,9 +1,7 @@
 import express from "express";
-import { authenticate, requireRole } from "../middlewares/auth.middleware";
+import { authenticate } from "../middlewares/auth.middleware";
 import userController from "../controllers/user.controller";
 import { upload } from "../config/multer";
-import { validatePagination } from "../validations/public.validation";
-import { UserRole } from "../constants";
 const router = express.Router();
 router.use(authenticate);
 

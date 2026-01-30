@@ -14,6 +14,7 @@ export interface DecodedToken extends TokenData {
   exp?: number;
   jti?: string;
   roles?: string[];
+  permissions?: string[];
 }
 
 export const generateAccessToken = (data: TokenData): string => {

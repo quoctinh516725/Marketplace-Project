@@ -20,7 +20,7 @@ class RoleController {
   getAllRoles = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const result = await roleService.getAllRoles();
-      sendSuccess(res, result, "Tạo chức năng người dùng thành công!");
+      sendSuccess(res, result, "Lấy chức năng người dùng thành công!");
     },
   );
 
@@ -55,13 +55,13 @@ class RoleController {
       sendSuccess(res, result, "Cập nhật chức năng người dùng thành công!");
     },
   );
-  
+
   revokeRoleFromUser = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.params.id as string;
-      const roleCode = req.params.roleCode as UserRole;
+      const { roleCodes } = req.body;
 
-      const result = await roleService.revokeRoleFromUser(userId, roleCode);
+      const result = await roleService.revokeRoleFromUser(userId, roleCodes);
       sendSuccess(res, result, "Cập nhật chức năng người dùng thành công!");
     },
   );

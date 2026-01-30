@@ -3,7 +3,7 @@ import helmet from "helmet";
 import cors from "cors";
 import { env } from "./config/env";
 import cookieParser from "cookie-parser";
-import { errorHandler } from "./middlewares/errorMiddleware";
+import { errorHandler } from "./middlewares/error.middleware";
 
 import apiRoute from "./routes";
 

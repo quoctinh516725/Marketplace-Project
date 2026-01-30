@@ -26,21 +26,22 @@ class RoleService {
     return await roleRepository.getAllRoles();
   };
   updateRole = async (id: string, data: UpdateRole): Promise<Role> => {
-    const role = await roleRepository.findRoleById(id);
-    if (!role) throw new NotFoundError("Chức năng không tồn tại!");
-
     //Check status
     if (data.status && !Object.values(RoleStatus).includes(data.status)) {
       throw new ValidationError("Trạng thái chức năng không hợp lệ!");
     }
-    await cacheTag.invalidateTag(`role:${role.code}`);
-    return await roleRepository.updateRole(id, data);
+    const result = await roleRepository.updateRole(id, data);
+
+    if (!result) throw new NotFoundError("Chức năng không tồn tại!");
+    await cacheTag.invalidateTag(`role:${result.code}`);
+
+    return result;
   };
-  delete = async (id: string): Promise<void> => {
-    const role = await roleRepository.findRoleById(id);
-    if (!role) throw new NotFoundError("Chức năng không tồn tại!");
-    await roleRepository.delete(id);
-    await cacheTag.invalidateTag(`role:${role.code}`);
+  delete = async (id: string): Promise<Role> => {
+    const result = await roleRepository.delete(id);
+    if (!result) throw new NotFoundError("Chức năng không tồn tại!");
+    await cacheTag.invalidateTag(`role:${result.code}`);
+    return result;
   };
   asignRoleToUser = async (
     client: PrismaType,
@@ -72,18 +73,21 @@ class RoleService {
   };
   revokeRoleFromUser = async (
     id: string,
-    roleCode: UserRole,
+    roleCodes: UserRole[],
   ): Promise<void> => {
     const user = await userRepository.findById(prisma, id);
     if (!user) throw new NotFoundError("Người dùng không tồn tại!");
 
-    if (!roleCode)
+    if (!roleCodes || roleCodes.length === 0)
       throw new ValidationError("Không có chức năng nào được chọn!");
 
-    const role = await roleRepository.findRoleByCode(roleCode);
-    if (!role) throw new NotFoundError("Chức năng yêu cầu xóa không hợp lệ!");
+    const roles = await roleRepository.validateRoles(prisma, roleCodes);
+    if (!roles) throw new NotFoundError("Chức năng được gán không hợp lệ!");
 
-    await roleRepository.revokeRoleFromUser(id, role.id);
+    await roleRepository.revokeRoleFromUser(
+      id,
+      roles.map((role) => role.id),
+    );
     await Promise.all([
       cacheTag.invalidateTag(`auth:user:${id}`),
       cacheTag.invalidateTag(`user:${id}`),

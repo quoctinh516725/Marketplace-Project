@@ -27,11 +27,11 @@ class RoleRepository {
   getAllRoles = async (): Promise<Role[]> => {
     return await prisma.role.findMany({ orderBy: { createdAt: "desc" } });
   };
-  updateRole = async (id: string, data: UpdateRole): Promise<Role> => {
+  updateRole = async (id: string, data: UpdateRole): Promise<Role | null> => {
     return await prisma.role.update({ where: { id }, data });
   };
-  delete = async (id: string): Promise<void> => {
-    await prisma.role.delete({ where: { id } });
+  delete = async (id: string): Promise<Role | null> => {
+    return await prisma.role.delete({ where: { id } });
   };
 
   findRoleById = async (id: string): Promise<RoleQuery | null> => {
@@ -46,13 +46,31 @@ class RoleRepository {
       select: { id: true, code: true },
     });
   };
-  findRolesByUser = async (userId: string): Promise<string[]> => {
-    const roles = await prisma.userRole.findMany({
+  findRolesByUser = async (
+    userId: string,
+  ): Promise<{ roleIds: string[]; roleCodes: string[] }> => {
+    const result = await prisma.userRole.findMany({
       where: { userId, role: { status: RoleStatus.ACTIVE } },
-      include: { role: { select: { code: true } } },
+      select: { roleId: true, role: { select: { code: true } } },
     });
-    return roles.map((r) => r.role.code);
+    return {
+      roleIds: result.map((r) => r.roleId),
+      roleCodes: result.map((r) => r.role.code),
+    };
   };
+  findRolesByPermissionId = async (
+    permissionId: string,
+  ): Promise<{ roleIds: string[]; roleCodes: string[] }> => {
+    const result = await prisma.rolePermission.findMany({
+      where: { permissionId, role: { status: RoleStatus.ACTIVE } },
+      select: { roleId: true, role: { select: { code: true } } },
+    });
+    return {
+      roleIds: result.map((r) => r.roleId),
+      roleCodes: result.map((r) => r.role.code),
+    };
+  };
+
   validateRoles = async (
     client: PrismaType,
     roleCodes: string[],
@@ -66,20 +84,23 @@ class RoleRepository {
   };
   asignRoleToUser = async (
     client: PrismaType,
-    id: string,
+    userId: string,
     roles: string[],
   ): Promise<void> => {
-    const data = roles.map((r) => ({ userId: id, roleId: r }));
+    const data = roles.map((r) => ({ userId, roleId: r }));
 
-    await client.userRole.deleteMany({ where: { userId: id } });
+    await client.userRole.deleteMany({ where: { userId } });
     await client.userRole.createMany({ data });
   };
   revokeRoleFromUser = async (
     userId: string,
-    roleId: string,
+    roleIds: string[],
   ): Promise<void> => {
-    await prisma.userRole.delete({
-      where: { userId_roleId: { userId, roleId } },
+    await prisma.userRole.deleteMany({
+      where: {
+        userId,
+        roleId: { in: roleIds },
+      },
     });
   };
 }

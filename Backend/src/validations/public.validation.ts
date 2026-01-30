@@ -6,13 +6,23 @@ export const validatePagination = (
   res: Response,
   next: NextFunction,
 ) => {
-  const page = req.query.page ? parseInt(req.query.page as string) : 1;
-  const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-  if (page < 1) {
+  const pageRaw = req.query.page as string | undefined;
+  const limitRaw = req.query.limit as string | undefined;
+
+  const page = pageRaw ? Number(pageRaw) : undefined;
+  const limit = limitRaw ? Number(limitRaw) : undefined;
+
+  if (pageRaw && Number.isNaN(page)) {
+    throw new ValidationError("Page phải là số");
+  }
+  if (limitRaw && Number.isNaN(limit)) {
+    throw new ValidationError("Limit phải là số");
+  }
+  if (page !== undefined && page < 1) {
     throw new ValidationError("Trang phải lớn hơn 0");
   }
-  if (limit < 1 || limit > 100) {
-    throw new ValidationError("Giới hạn phải lớn hơn 1 và bé hơn 100");
+  if (limit !== undefined && (limit < 1 || limit > 100)) {
+    throw new ValidationError("Giới hạn phải từ 1 đến 100");
   }
 
   next();
