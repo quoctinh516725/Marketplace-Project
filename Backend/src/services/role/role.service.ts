@@ -26,24 +26,27 @@ class RoleService {
     return await roleRepository.getAllRoles();
   };
   updateRole = async (id: string, data: UpdateRole): Promise<Role> => {
+    const role = await roleRepository.findRoleById(id);
+    if (!role) throw new NotFoundError("Chức năng không tồn tại!");
+
     //Check status
     if (data.status && !Object.values(RoleStatus).includes(data.status)) {
       throw new ValidationError("Trạng thái chức năng không hợp lệ!");
     }
     const result = await roleRepository.updateRole(id, data);
-
-    if (!result) throw new NotFoundError("Chức năng không tồn tại!");
     await cacheTag.invalidateTag(`role:${result.code}`);
 
     return result;
   };
   delete = async (id: string): Promise<Role> => {
+    const role = await roleRepository.findRoleById(id);
+    if (!role) throw new NotFoundError("Chức năng không tồn tại!");
+
     const result = await roleRepository.delete(id);
-    if (!result) throw new NotFoundError("Chức năng không tồn tại!");
     await cacheTag.invalidateTag(`role:${result.code}`);
     return result;
   };
-  asignRoleToUser = async (
+  assignRoleToUser = async (
     client: PrismaType,
     id: string,
     roleCodes: UserRole[],
@@ -59,7 +62,7 @@ class RoleService {
     const roles = await roleRepository.validateRoles(client, roleCodes);
     if (!roles) throw new NotFoundError("Chức năng được gán không hợp lệ!");
 
-    await roleRepository.asignRoleToUser(
+    await roleRepository.assignRoleToUser(
       client,
       id,
       roles.map((role) => role.id),
@@ -85,6 +88,7 @@ class RoleService {
     if (!roles) throw new NotFoundError("Chức năng được gán không hợp lệ!");
 
     await roleRepository.revokeRoleFromUser(
+      prisma,
       id,
       roles.map((role) => role.id),
     );

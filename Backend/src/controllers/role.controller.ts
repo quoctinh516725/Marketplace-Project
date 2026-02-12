@@ -43,11 +43,11 @@ class RoleController {
     sendSuccess(res, result, "Xóa chức năng thành công!");
   });
 
-  asignRoleToUser = asyncHandler(
+  assignRoleToUser = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.params.id as string;
       const { roleCodes } = req.body;
-      const result = await roleService.asignRoleToUser(
+      const result = await roleService.assignRoleToUser(
         prisma,
         userId,
         roleCodes,

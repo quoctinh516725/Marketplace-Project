@@ -44,7 +44,7 @@ roleRoute.post("/", roleController.create);
 roleRoute.patch("/:id", roleController.updateRole);
 roleRoute.delete("/:id", roleController.delete);
 
-roleRoute.post("/:id/users", roleController.asignRoleToUser);
+roleRoute.post("/:id/users", roleController.assignRoleToUser);
 roleRoute.delete("/:id/users", roleController.revokeRoleFromUser);
 router.use("/roles", roleRoute);
 
@@ -74,6 +74,6 @@ permissionRoute.delete(
   permissionController.removePermissionFromUser,
 );
 
-router.use("/permission", permissionRoute);
+router.use("/permissions", permissionRoute);
 
 export default router;

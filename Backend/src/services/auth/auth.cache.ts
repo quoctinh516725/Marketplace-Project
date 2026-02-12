@@ -1,4 +1,3 @@
-import { User } from "../../../generated/prisma/client";
 import { CacheKey } from "../../cache/cache.key";
 import cacheService from "../../cache/cache.service";
 import cacheTag from "../../cache/cache.tag";
@@ -9,6 +8,7 @@ export type AuthUserCache = {
   status: UserStatus;
   roles: string[];
   permissions: string[];
+  shopId?: string;
 };
 
 export async function addBlacklistToken(jti: string, ttl: number) {

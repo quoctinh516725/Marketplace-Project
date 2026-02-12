@@ -16,7 +16,7 @@ class RefreshTokenRepository {
     });
   };
   revokeRefreshToken = async (token: string): Promise<void> => {
-    await prisma.refreshToken.update({
+    await prisma.refreshToken.updateMany({
       where: { token, revoked: false },
       data: { revoked: true },
     });
