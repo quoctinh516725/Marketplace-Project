@@ -13,11 +13,10 @@ import {
 } from "../utils/jwt";
 import { UserRole, UserStatus } from "../constants";
 import userRepository from "../repositories/user.repository";
-import { CacheKey } from "../cache/cache.key";
-import { CacheTTL } from "../cache/cache.ttl";
 import { prisma } from "../config/prisma";
 import { PermissionCode } from "../constants/permissionCode";
 import permissionRepository from "../repositories/permission.repository";
+import shopRepository from "../repositories/shop.repository";
 
 declare global {
   namespace Express {
@@ -49,6 +48,7 @@ export const authenticate = asyncHandler(
 
     //Get cache check User Active
     let userCache = await getAuthUserCache(decoded.userId);
+
     if (!userCache) {
       const user = await userRepository.findById(prisma, decoded.userId);
 
@@ -57,6 +57,7 @@ export const authenticate = asyncHandler(
       if (user.status !== UserStatus.ACTIVE) {
         throw new UnauthorizedError("Tài khoản đã bị vô hiệu hóa!");
       }
+
       const roleCodes = user.userRoles.map((ur) => ur.role.code);
       const roleIds = user.userRoles.map((ur) => ur.roleId);
 
@@ -70,11 +71,19 @@ export const authenticate = asyncHandler(
         ...new Set([...rolePermissions, ...userPermissions]),
       ];
 
+      //Get shop
+      let shopId: string | undefined;
+      if (roleCodes.includes(UserRole.SELLER)) {
+        const shop = await shopRepository.findShopBySeller(user.id);
+        shopId = shop?.id;
+      }
+
       userCache = {
         id: user.id,
         status: user.status,
         roles: roleCodes,
         permissions,
+        shopId,
       };
 
       const ttl = getTokenRemainingTime(token);
@@ -82,9 +91,9 @@ export const authenticate = asyncHandler(
     }
 
     // Gán role và shopId mới nhất trong trường hợp người dùng đăng ký shop hoặc admin chỉnh sửa role trong phiên hoạt động
-    // NOTE: BỔ SUNG SHOP SAU
     decoded.roles = userCache.roles;
     decoded.permissions = userCache.permissions;
+    decoded.shopId = userCache.shopId ?? undefined;
 
     req.user = decoded;
     req.token = token;

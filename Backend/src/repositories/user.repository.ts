@@ -1,19 +1,15 @@
 import { Prisma, User } from "../../generated/prisma/client";
-import { CacheKey } from "../cache/cache.key";
-import { CacheTTL } from "../cache/cache.ttl";
 import { prisma } from "../config/prisma";
-import { UserRole, UserStatus } from "../constants";
+import { UserStatus } from "../constants";
 import { PermissionStatus } from "../constants/permissionStatus";
 import { RoleStatus } from "../constants/roleStatus";
 import { InputAll, PrismaType } from "../types";
 import {
   UserAllResponse,
-  UserProfileResponse,
   UserProfileWithRoles,
   UserResponse,
   UserUpdateResponse,
 } from "../types/user.type";
-import { cacheAsync } from "../utils/cache";
 
 export interface CreateUserData {
   username: string;
@@ -48,22 +44,20 @@ export type UserCache = Omit<
 
 class UserRepository {
   create = async (client: PrismaType, data: CreateUserData): Promise<User> => {
-    const newUser = await client.user.create({
+    return await client.user.create({
       data,
     });
-    return newUser;
   };
   update = async (
     client: PrismaType,
     id: string,
     data: UpdateUserData,
-  ): Promise<UserUpdateResponse | null> => {
-    const updatedUser = await client.user.update({
+  ): Promise<UserUpdateResponse> => {
+    return await client.user.update({
       where: { id },
       data,
       omit: { password: true },
     });
-    return updatedUser;
   };
   getUsers = async (input: InputAll): Promise<UserAllResponse> => {
     const { status, page, limit, search } = input;
@@ -72,7 +66,10 @@ class UserRepository {
     const take = limit;
 
     let where: any = {};
-    if (status) where = status ? { status: status } : {};
+    if (status !== undefined) {
+      where.status = status;
+    }
+
     if (search) {
       where.OR = [
         { email: { contains: search, mode: "insensitive" } },
@@ -170,7 +167,7 @@ class UserRepository {
   updateAvatar = async (
     id: string,
     avatarUrl: string,
-  ): Promise<UserResponse | null> => {
+  ): Promise<UserResponse> => {
     return await prisma.user.update({
       where: {
         id,

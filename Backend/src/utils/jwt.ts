@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { randomUUID } from "crypto";
+import { UnauthorizedError } from "../error/AppError";
 
 export interface TokenData {
   userId: string;
@@ -38,7 +39,7 @@ export const verifyAccessToken = (accessToken: string): DecodedToken => {
     const secret = env.JWT_ACCESS_SECRET;
     return jwt.verify(accessToken, secret) as DecodedToken;
   } catch (error) {
-    throw new Error("Token không hợp lệ hoặc hết hạn!");
+    throw new UnauthorizedError("Token không hợp lệ hoặc hết hạn!");
   }
 };
 
@@ -47,7 +48,7 @@ export const verifyRefreshToken = (refreshToken: string) => {
     const secret = env.JWT_REFRESH_SECRET;
     return jwt.verify(refreshToken, secret);
   } catch (error) {
-    throw new Error("Token không hợp lệ hoặc hết hạn!");
+    throw new UnauthorizedError("Token không hợp lệ hoặc hết hạn!");
   }
 };
 

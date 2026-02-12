@@ -15,7 +15,6 @@ import {
   UserAllResponse,
   UserInforResponse,
   UserProfileResponse,
-  UserResponse,
   UserUpdateResponse,
 } from "../../types/user.type";
 import { DecodedToken } from "../../utils/jwt";
@@ -38,11 +37,11 @@ class UserService {
         ]);
 
         if (!user) throw new NotFoundError("Người dùng không tồn tại!");
-        if (roles.length === 0)
+        if (roles.roleCodes.length === 0)
           throw new NotFoundError("Không tồn tại chức năng của người dùng!");
         return {
-          data: { ...user, roles },
-          tags: roles.map((r) => `role:${r}`),
+          data: { ...user, roles: roles.roleCodes },
+          tags: roles.roleCodes.map((r) => `role:${r}`),
         };
       },
     );
@@ -93,17 +92,19 @@ class UserService {
     ]);
 
     if (!user) throw new NotFoundError("Người dùng không tồn tại!");
-    if (roles.length === 0)
+    if (roles.roleCodes.length === 0)
       throw new NotFoundError("Không tồn tại chức năng của người dùng!");
-    return { ...user, roles };
+    return { ...user, roles: roles.roleCodes };
   };
 
   update = async (
     userId: string,
     data: UpdateUserData,
   ): Promise<UserUpdateResponse> => {
+    const user = await userRepository.findById(prisma, userId);
+    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+
     const userUpdated = await userRepository.update(prisma, userId, data);
-    if (!userUpdated) throw new NotFoundError("Người dùng không tồn tại!");
 
     await deleteUserCache(userUpdated.id);
     return userUpdated;
@@ -135,8 +136,9 @@ class UserService {
     userId: string,
     avatarUrl: string,
   ): Promise<UserUpdateResponse> => {
+    const user = await userRepository.findById(prisma, userId);
+    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
     const result = await userRepository.updateAvatar(userId, avatarUrl);
-    if (!result) throw new NotFoundError("Người dùng không tồn tại!");
     await deleteUserCache(userId);
     return result;
   };

@@ -27,6 +27,7 @@ model User {
   userRoles       UserRole[]
   refreshTokens   RefreshToken[]
   userPermissions UserPermission[]
+  shop Shop?
 
   @@map("users")
 }
@@ -125,4 +126,27 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+model Shop {
+  id String @id @default(uuid())
+  sellerId String @unique @map("seller_id")
+  name String
+  address String 
+  phone String
+  slug String @unique
+  description String?
+  logoUrl String? @map("logo_url")
+  backgroundUrl String? @map("background_url")
+  
+ totalProducts  Int      @default(0) @map("total_products")
+  totalOrders    Int      @default(0) @map("total_orders")
+  totalReviews Int @default(0) @map("total_reviews")
+  commissionRate Decimal? @map("commission_rate") @db.Decimal(5, 4)
+
+  status String @default("PENDING_APPROVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [sellerId],references: [id], onDelete: Cascade, onUpdate: Cascade)
 }

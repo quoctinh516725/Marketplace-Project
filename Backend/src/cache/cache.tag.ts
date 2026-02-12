@@ -14,6 +14,7 @@ class CacheTag {
   }
   async invalidateTag(tag: string) {
     const tagkey = `${TAG_PREFIX}${tag}`;
+
     const keys = await redis.smembers(tagkey);
     if (keys.length > 0) {
       await redis.del(...keys);

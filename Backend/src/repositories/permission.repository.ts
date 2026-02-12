@@ -1,7 +1,6 @@
-import { constants } from "node:buffer";
 import { Permission, Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
-import { InputAll, PrismaType } from "../types";
+import { InputAll } from "../types";
 import { PaginatedResponse } from "../types/pagination.type";
 import { PermissionStatus } from "../constants/permissionStatus";
 export type CreatePermission = {
@@ -19,7 +18,7 @@ class PermissionRepository {
   create = async (data: CreatePermission): Promise<Permission> => {
     return await prisma.permission.create({ data });
   };
-  delete = async (id: string): Promise<Permission | null> => {
+  delete = async (id: string): Promise<Permission> => {
     return await prisma.permission.delete({ where: { id } });
   };
   getAll = async (input: InputAll): Promise<PermissionAllResponse> => {
@@ -69,10 +68,7 @@ class PermissionRepository {
 
     return result.map((r) => r.permission.code);
   };
-  update = async (
-    id: string,
-    data: UpdatePermission,
-  ): Promise<Permission | null> => {
+  update = async (id: string, data: UpdatePermission): Promise<Permission> => {
     return prisma.permission.update({ where: { id }, data });
   };
 
@@ -128,7 +124,7 @@ class PermissionRepository {
     await prisma.userPermission.deleteMany({ where: { userId } });
     await prisma.userPermission.createMany({ data });
   };
-  
+
   removePermissionFromUser = async (
     userId: string,
     permissionIds: string[],

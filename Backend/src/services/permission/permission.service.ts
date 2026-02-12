@@ -1,8 +1,7 @@
 import { Permission } from "../../../generated/prisma/client";
-import { CacheKey } from "../../cache/cache.key";
 import cacheTag from "../../cache/cache.tag";
-import { CacheTTL } from "../../cache/cache.ttl";
 import { prisma } from "../../config/prisma";
+import { PermissionStatus } from "../../constants/permissionStatus";
 import {
   ConflictError,
   NotFoundError,
@@ -17,7 +16,7 @@ import roleRepository from "../../repositories/role.repository";
 import userRepository from "../../repositories/user.repository";
 import { InputAll } from "../../types";
 
-class RoleService {
+class PermissionService {
   create = async (data: CreatePermission): Promise<Permission> => {
     //Check role exist
     const exist = await permissionRepository.findByCode(data.code);
@@ -31,7 +30,7 @@ class RoleService {
     //Validate status
     if (
       status &&
-      !Object.values(PermissionStatus).includes(status as PermissionState)
+      !Object.values(PermissionStatus).includes(status as PermissionStatus)
     ) {
       throw new ValidationError("Trạng thái không hợp lệ!");
     }
@@ -44,22 +43,23 @@ class RoleService {
     });
   };
   update = async (id: string, data: UpdatePermission): Promise<Permission> => {
+    const permission = await permissionRepository.findById(id);
+    if (!permission) throw new NotFoundError("Quyền không tồn tại!");
     if (data.code) {
       const exist = await permissionRepository.findByCode(data.code);
-      if (exist) throw new ConflictError("Quyền hạn đã tồn tại!");
+      if (exist && exist.id !== id)
+        throw new ConflictError("Quyền hạn đã tồn tại!");
     }
     if (data.status && !Object.values(PermissionStatus).includes(data.status)) {
       throw new ValidationError("Trạng thái quyền không hợp lệ!");
     }
 
-    const { roleCodes, roleIds } =
-      await roleRepository.findRolesByPermissionId(id);
+    const { roleCodes } = await roleRepository.findRolesByPermissionId(id);
 
     //Invalidate Tag
     const result = await permissionRepository.update(id, data);
-    if (!result) throw new NotFoundError("Quyền không tồn tại!");
 
-    if (!roleCodes || roleCodes.length > 0) {
+    if (roleCodes.length > 0) {
       await Promise.all(
         roleCodes.map((roleCode) => cacheTag.invalidateTag(`role:${roleCode}`)),
       );
@@ -68,18 +68,17 @@ class RoleService {
     return result;
   };
   delete = async (id: string): Promise<Permission> => {
-    const { roleCodes, roleIds } =
-      await roleRepository.findRolesByPermissionId(id);
+    const permission = await permissionRepository.findById(id);
+    if (!permission) throw new NotFoundError("Quyền không tồn tại!");
+
+    const { roleCodes } = await roleRepository.findRolesByPermissionId(id);
 
     const result = await permissionRepository.delete(id);
-    if (!result) throw new NotFoundError("Quyền không tồn tại!");
-
-    if (!roleCodes || roleCodes.length > 0) {
+    if (roleCodes.length > 0) {
       await Promise.all(
         roleCodes.map((roleCode) => cacheTag.invalidateTag(`role:${roleCode}`)),
       );
     }
-
     return result;
   };
   assignPermissionToRole = async (
@@ -170,4 +169,4 @@ class RoleService {
     ]);
   };
 }
-export default new RoleService();
+export default new PermissionService();
