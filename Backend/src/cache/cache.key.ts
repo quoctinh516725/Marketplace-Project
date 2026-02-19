@@ -2,8 +2,6 @@ import { InputAll } from "../types";
 
 export const KEY_PREFIX = "mplace";
 const listCache = (input: InputAll, name: string) => {
-  const { status, page, limit, search } = input;
-
   const normalize = (v: any) => {
     return v === undefined || v === null || v === ""
       ? "all"
@@ -12,6 +10,22 @@ const listCache = (input: InputAll, name: string) => {
 
   return (
     `${KEY_PREFIX}:${name}:list:` +
+    `p=${normalize(input.page)}:` +
+    `l=${normalize(input.limit)}:` +
+    `s=${normalize(input.status)}:` +
+    `q=${normalize(input.search)}`
+  );
+};
+
+const shopProductCache = (input: InputAll, shopId: string) => {
+  const normalize = (v: any) => {
+    return v === undefined || v === null || v === ""
+      ? "all"
+      : String(v).trim().toLowerCase();
+  };
+
+  return (
+    `${KEY_PREFIX}:shop:${shopId}:` +
     `p=${normalize(input.page)}:` +
     `l=${normalize(input.limit)}:` +
     `s=${normalize(input.status)}:` +
@@ -27,13 +41,21 @@ export const CacheKey = {
     },
   },
   user: {
-    detail: (id: string) => `${KEY_PREFIX}:user:detail:${id}`,
+    me: (id: string) => `${KEY_PREFIX}:user:detail:${id}`,
     profile: (id: string) => `${KEY_PREFIX}:user:profile:${id}`,
     list: (input: InputAll) => listCache(input, "user"),
   },
 
   shop: {
-    list: (input: InputAll) => listCache(input, "shop"),
     me: (sellerId: string) => `${KEY_PREFIX}:shop:me:${sellerId}`,
+    detail: (shopId: string) => `${KEY_PREFIX}:shop:detail:${shopId}`,
+    list: (input: InputAll) => listCache(input, "shop"),
+    shopProduct: (input: InputAll, shopId: string) =>
+      shopProductCache(input, shopId),
+  },
+
+  product: {
+    detail: (productId: string) => `${KEY_PREFIX}:product:detail:${productId}`,
+    list: (input: InputAll) => listCache(input, "product"),
   },
 };

@@ -50,7 +50,7 @@ export const authenticate = asyncHandler(
     let userCache = await getAuthUserCache(decoded.userId);
 
     if (!userCache) {
-      const user = await userRepository.findById(prisma, decoded.userId);
+      const user = await userRepository.findUserDetailById(prisma, decoded.userId);
 
       if (!user) throw new UnauthorizedError("Tài khoản không tồn tại!");
 
@@ -59,7 +59,7 @@ export const authenticate = asyncHandler(
       }
 
       const roleCodes = user.userRoles.map((ur) => ur.role.code);
-      const roleIds = user.userRoles.map((ur) => ur.roleId);
+      const roleIds = user.userRoles.map((ur) => ur.role.id);
 
       const rolePermissions =
         await permissionRepository.getPermissionsByRole(roleIds);

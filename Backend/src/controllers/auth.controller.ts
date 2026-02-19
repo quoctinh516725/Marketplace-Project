@@ -1,34 +1,29 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
-import authValidation from "../validations/auth.validation";
 import authService from "../services/auth/auth.service";
 import { sendSuccess } from "../utils/response";
 import {
   REFRESH_TOKEN_COOKIE_NAME,
   setRefreshTokenCookie,
 } from "../utils/cookie";
+import {
+  registerRequestDto,
+  loginRequestDto,
+} from "../dtos";
+
 class AuthController {
   login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { emailOrUsername, password } = req.body;
-    const dataValidated = authValidation.loginValidation({
-      emailOrUsername,
-      password,
-    });
+    const dataValidated = loginRequestDto(req.body);
 
     const result = await authService.login(dataValidated);
-
     const { refreshToken, ...data } = result;
     setRefreshTokenCookie(res, refreshToken);
     sendSuccess(res, data, "Đăng nhập thành công!");
   });
+
   register = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
-      const { email, username, password } = req.body;
-      const dataValidated = authValidation.registerValidation({
-        email,
-        username,
-        password,
-      });
+      const dataValidated = registerRequestDto(req.body);
       const result = await authService.register(dataValidated);
 
       const { refreshToken, ...data } = result;
@@ -36,6 +31,7 @@ class AuthController {
       sendSuccess(res, data, "Đăng ký thành công!");
     },
   );
+
   refreshToken = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME];
@@ -43,6 +39,7 @@ class AuthController {
       sendSuccess(res, token, "Refresh Token thành công!");
     },
   );
+
   logout = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME];
     const accessToken = req.token!;

@@ -6,6 +6,7 @@ export interface CreateRefreshTokenData {
   token: string;
   expiredAt: Date;
 }
+
 class RefreshTokenRepository {
   findByToken = async (
     token: string,

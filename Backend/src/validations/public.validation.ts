@@ -1,6 +1,17 @@
 import { NextFunction, Request, Response } from "express";
 import { ValidationError } from "../error/AppError";
 
+declare global {
+  namespace Express {
+    interface Request {
+      pagination?: {
+        page: number;
+        limit: number;
+      };
+    }
+  }
+}
+
 export const validatePagination = (
   req: Request,
   res: Response,
@@ -9,8 +20,8 @@ export const validatePagination = (
   const pageRaw = req.query.page as string | undefined;
   const limitRaw = req.query.limit as string | undefined;
 
-  const page = pageRaw ? Number(pageRaw) : undefined;
-  const limit = limitRaw ? Number(limitRaw) : undefined;
+  const page = pageRaw ? Number(pageRaw) : 1;
+  const limit = limitRaw ? Number(limitRaw) : 10;
 
   if (pageRaw && Number.isNaN(page)) {
     throw new ValidationError("Page phải là số");
@@ -24,6 +35,8 @@ export const validatePagination = (
   if (limit !== undefined && (limit < 1 || limit > 100)) {
     throw new ValidationError("Giới hạn phải từ 1 đến 100");
   }
+
+  req.pagination = { page, limit };
 
   next();
 };

@@ -1,21 +1,18 @@
 import { Prisma, User } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
 import { UserStatus } from "../constants";
-import { PermissionStatus } from "../constants/permissionStatus";
-import { RoleStatus } from "../constants/roleStatus";
 import { InputAll, PrismaType } from "../types";
 import {
-  UserAllResponse,
-  UserProfileWithRoles,
-  UserResponse,
-  UserUpdateResponse,
+  UserListResult,
+  UserDetailResult,
+  UserBasicResult,
+  UserProfileResult,
 } from "../types/user.type";
 
 export interface CreateUserData {
   username: string;
   email: string;
   password: string;
-  phone?: string;
 }
 
 export interface UpdateUserData {
@@ -28,68 +25,75 @@ export interface UpdateUserData {
   deletedAt?: Date;
 }
 
-export type UserCache = Omit<
-  Prisma.UserGetPayload<{
-    include: {
-      userRoles: {
-        include: { role: true };
-      };
-      userPermissions: {
-        include: { permission: true };
-      };
-    };
-  }>,
-  "password"
->;
+const selectUserDetail = {
+  id: true,
+  email: true,
+  username: true,
+  fullName: true,
+  phone: true,
+  avatarUrl: true,
+  gender: true,
+  dateOfBirth: true,
+  status: true,
+  lastLoginAt: true,
+  createdAt: true,
+  deletedAt: true,
+
+  userRoles: {
+    select: {
+      role: {
+        select: {
+          id: true,
+          code: true,
+        },
+      },
+    },
+  },
+
+  userPermissions: {
+    select: {
+      permission: {
+        select: {
+          id: true,
+          code: true,
+        },
+      },
+    },
+  },
+};
+
+const selectUserBasic = {
+  id: true,
+  email: true,
+  username: true,
+  fullName: true,
+  phone: true,
+  avatarUrl: true,
+  gender: true,
+  dateOfBirth: true,
+  status: true,
+  lastLoginAt: true,
+  createdAt: true,
+};
+
+const selectUserProfile = {
+  id: true,
+  username: true,
+  fullName: true,
+  avatarUrl: true,
+  userRoles: {
+    select: {
+      role: {
+        select: {
+          id: true,
+          code: true,
+        },
+      },
+    },
+  },
+};
 
 class UserRepository {
-  create = async (client: PrismaType, data: CreateUserData): Promise<User> => {
-    return await client.user.create({
-      data,
-    });
-  };
-  update = async (
-    client: PrismaType,
-    id: string,
-    data: UpdateUserData,
-  ): Promise<UserUpdateResponse> => {
-    return await client.user.update({
-      where: { id },
-      data,
-      omit: { password: true },
-    });
-  };
-  getUsers = async (input: InputAll): Promise<UserAllResponse> => {
-    const { status, page, limit, search } = input;
-
-    const skip = (page - 1) * limit;
-    const take = limit;
-
-    let where: any = {};
-    if (status !== undefined) {
-      where.status = status;
-    }
-
-    if (search) {
-      where.OR = [
-        { email: { contains: search, mode: "insensitive" } },
-        { username: { contains: search, mode: "insensitive" } },
-        { fullName: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take,
-        omit: { password: true },
-      }),
-      prisma.user.count({ where }),
-    ]);
-    return { data: users, pagination: { limit, page, total } };
-  };
   existEmail = async (email: string): Promise<boolean> => {
     const exist = await prisma.user.findUnique({
       where: { email },
@@ -98,6 +102,7 @@ class UserRepository {
 
     return exist !== null;
   };
+
   existUsername = async (username: string): Promise<boolean> => {
     const exist = await prisma.user.findUnique({
       where: { username },
@@ -105,53 +110,94 @@ class UserRepository {
     });
     return exist !== null;
   };
-  getProfile = async (id: string): Promise<UserProfileWithRoles | null> => {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        avatarUrl: true,
-        fullName: true,
-        userRoles: {
-          select: {
-            role: {
-              select: { code: true },
-            },
-          },
-        },
-      },
-    });
-    if (!user) return null;
 
-    return {
-      profile: {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName ?? undefined,
-        avatarUrl: user.avatarUrl ?? undefined,
-      },
-      roleCodes: user.userRoles.map((ur) => ur.role.code),
-    };
+  create = async (
+    client: PrismaType,
+    data: CreateUserData,
+  ): Promise<UserBasicResult> => {
+    return await client.user.create({
+      data,
+      select: selectUserBasic,
+    });
   };
 
-  findById = async (
+  update = async (
     client: PrismaType,
     id: string,
-  ): Promise<UserCache | null> => {
+    data: UpdateUserData,
+  ): Promise<UserBasicResult> => {
+    return await client.user.update({
+      where: { id },
+      select: selectUserBasic,
+      data,
+    });
+  };
+
+  getUsers = async (input: InputAll): Promise<UserListResult> => {
+    const { status, page, limit, search } = input;
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    let where: Prisma.UserWhereInput = {};
+    if (status !== undefined) {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search } },
+        { username: { contains: search } },
+        { fullName: { contains: search } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: selectUserBasic,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.user.count({ where }),
+    ]);
+    return { data: users, total };
+  };
+
+  getProfile = async (id: string): Promise<UserProfileResult | null> => {
+    return await prisma.user.findUnique({
+      where: { id },
+      select: selectUserProfile,
+    });
+  };
+
+  getUserByPermissionId = async (permissionId: string): Promise<string[]> => {
+    const users = await prisma.userPermission.findMany({
+      where: { permissionId },
+      select: { user: { select: { id: true } } },
+    });
+
+    return users.map((u) => u.user.id);
+  };
+
+  findBasicById = async (
+    client: PrismaType,
+    id: string,
+  ): Promise<UserBasicResult | null> => {
     return await client.user.findUnique({
       where: { id },
-      include: {
-        userRoles: {
-          include: { role: true },
-          where: { role: { status: RoleStatus.ACTIVE } },
-        },
-        userPermissions: {
-          include: { permission: true },
-          where: { permission: { status: PermissionStatus.ACTIVE } },
-        },
-      },
-      omit: { password: true },
+      select: selectUserBasic,
+    });
+  };
+
+  findUserDetailById = async (
+    client: PrismaType,
+    id: string,
+  ): Promise<UserDetailResult | null> => {
+    return await client.user.findUnique({
+      where: { id },
+      select: selectUserDetail,
     });
   };
 
@@ -164,16 +210,17 @@ class UserRepository {
       },
     });
   };
+
   updateAvatar = async (
     id: string,
     avatarUrl: string,
-  ): Promise<UserResponse> => {
+  ): Promise<UserBasicResult> => {
     return await prisma.user.update({
       where: {
         id,
       },
+      select: selectUserBasic,
       data: { avatarUrl },
-      omit: { password: true },
     });
   };
 }

@@ -6,6 +6,7 @@ import {
 import { upload } from "../config/multer";
 import shopController from "../controllers/seller/shop.controller";
 import { PermissionCode } from "../constants/permissionCode";
+import { validatePagination } from "../validations/public.validation";
 const router = express.Router();
 router.use(authenticate);
 router.get(
@@ -13,6 +14,13 @@ router.get(
   requirePermission([PermissionCode.VIEW_SHOP]),
   shopController.getMyShop,
 );
+router.get(
+  "/product",
+  validatePagination,
+  requirePermission([PermissionCode.VIEW_SHOP]),
+  shopController.getMyProduct,
+);
+
 router.post(
   "/",
   requirePermission([PermissionCode.CREATE_SHOP]),
@@ -22,6 +30,11 @@ router.patch(
   "/",
   requirePermission([PermissionCode.UPDATE_SHOP]),
   shopController.update,
+);
+router.patch(
+  "/status",
+  requirePermission([PermissionCode.UPDATE_SHOP]),
+  shopController.updateShopStatus,
 );
 router.patch(
   "/logo",

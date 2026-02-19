@@ -5,15 +5,17 @@ import { CacheTTL } from "../../../cache/cache.ttl";
 import { prisma } from "../../../config/prisma";
 import { ShopStatus } from "../../../constants/shopStatus";
 import {
+  CreateShopRequestDto,
+  ShopDetailResponseDto,
+  UpdateShopRequestDto,
+} from "../../../dtos/shop";
+import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
   ValidationError,
 } from "../../../error/AppError";
-import shopRepository, {
-  CreateShop,
-  UpdateShop,
-} from "../../../repositories/shop.repository";
+import shopRepository from "../../../repositories/shop.repository";
 import { cacheAsync } from "../../../utils/cache";
 import { deleteAuthUserCache } from "../../auth/auth.cache";
 
@@ -27,10 +29,11 @@ class ShopService {
 
     if (shop.status !== ShopStatus.ACTIVE)
       throw new ConflictError("Shop đang không hoạt động hoặc đã bị cấm!");
+
     return shop;
   };
 
-  getMyShop = async (sellerId: string): Promise<Shop> => {
+  getMyShop = async (sellerId: string): Promise<ShopDetailResponseDto> => {
     return await cacheAsync(
       CacheKey.shop.me(sellerId),
       CacheTTL.shop.me,
@@ -43,22 +46,30 @@ class ShopService {
     );
   };
 
-  createShop = async (sellerId: string, data: CreateShop): Promise<Shop> => {
+  createShop = async (
+    sellerId: string,
+    data: CreateShopRequestDto,
+  ): Promise<ShopDetailResponseDto> => {
     const exist = await shopRepository.findShopBySeller(sellerId);
     if (exist) throw new ConflictError("Bạn đã có shop rồi!");
 
     const existSlug = await shopRepository.findBySlug(data.slug);
     if (existSlug) throw new ConflictError("Slug đã tồn tại!");
 
-    await deleteAuthUserCache(sellerId);
-    return await shopRepository.create(sellerId, data);
+    const shop = await shopRepository.create(sellerId, data);
+    await Promise.all([
+      await deleteAuthUserCache(sellerId),
+      await cacheTag.invalidateTag("shop:list"),
+    ]);
+
+    return shop;
   };
 
   updateShop = async (
     sellerId: string,
     id: string,
-    data: UpdateShop,
-  ): Promise<Shop> => {
+    data: UpdateShopRequestDto,
+  ): Promise<ShopDetailResponseDto> => {
     if (data.slug) {
       const exist = await shopRepository.findBySlug(data.slug);
       if (exist && exist.id !== id)
@@ -67,17 +78,26 @@ class ShopService {
 
     const shop = await this.verifyShop(sellerId, id);
 
-    // Seller only update Active/Inactive status
-    const allowedStatuses: ShopStatus[] = [
-      ShopStatus.ACTIVE,
-      ShopStatus.INACTIVE,
-    ];
-    if (data.status && !allowedStatuses.includes(data.status as ShopStatus)) {
-      throw new ValidationError(`Trạng thái cập nhật không hợp lệ!`);
-    }
-
     // Update shop
     const result = await shopRepository.update(prisma, shop.id, data);
+
+    //Invalidate Cache
+    await cacheTag.invalidateTag(`shop:${shop.id}`);
+    return result;
+  };
+
+  updateShopStatus = async (
+    sellerId: string,
+    id: string,
+    status: ShopStatus,
+  ) => {
+    const shop = await shopRepository.findShopById(id);
+    if (!shop) throw new NotFoundError("Shop không tồn tại!");
+
+    if (shop.sellerId !== sellerId)
+      throw new ForbiddenError("Bạn không thể chỉnh sửa shop này!");
+
+    const result = await shopRepository.update(prisma, shop.id, { status });
 
     //Invalidate Cache
     await cacheTag.invalidateTag(`shop:${shop.id}`);
@@ -88,7 +108,7 @@ class ShopService {
     sellerId: string,
     id: string,
     logoUrl: string,
-  ): Promise<Shop> => {
+  ): Promise<ShopDetailResponseDto> => {
     const shop = await this.verifyShop(sellerId, id);
 
     // Update logo
@@ -102,7 +122,7 @@ class ShopService {
     sellerId: string,
     id: string,
     backgroundUrl: string,
-  ): Promise<Shop> => {
+  ): Promise<ShopDetailResponseDto> => {
     const shop = await this.verifyShop(sellerId, id);
 
     // Update background

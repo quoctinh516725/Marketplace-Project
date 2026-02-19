@@ -3,8 +3,12 @@ import { asyncHandler } from "../utils/asyncHandler";
 import userService from "../services/user/user.service";
 import { sendSuccess } from "../utils/response";
 import { UnauthorizedError, ValidationError } from "../error/AppError";
-import UserValidation from "../validations/user.validation";
 import { uploadStream } from "../utils/uploadStream";
+import {
+  updateUserStatusRequestDto,
+  userUpdateRequest,
+} from "../dtos/user/user.request.dto";
+import { UserStatus } from "../constants";
 
 class UserController {
   getMe = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -17,16 +21,12 @@ class UserController {
   });
   getUsers = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
-      const status = (req.query.status as string) || undefined;
-      const search = (req.query.search as string) || undefined;
-      const page = req.query.page ? parseInt(req.query.page as string) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-
+      const { page, limit } = req.pagination!;
       const result = await userService.getUsers({
         page,
         limit,
-        status,
-        search,
+        status: req.query.status as string,
+        search: req.query.search as string,
       });
 
       sendSuccess(res, result, "Lấy thông tin người dùng thành công!");
@@ -37,7 +37,6 @@ class UserController {
       const userId = req.params.id as string;
 
       const result = await userService.getProfile(userId);
-
       sendSuccess(res, result, "Lấy thông tin người dùng thành công!");
     },
   );
@@ -51,15 +50,28 @@ class UserController {
   );
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
-    const allowedData = UserValidation.validateUserDataUpdate(req.body);
+    const allowedData = userUpdateRequest(req.body);
 
     if (!user) {
       throw new UnauthorizedError("Không xác thực người dùng!");
     }
-
     const result = await userService.update(user.userId, allowedData);
     sendSuccess(res, result, "Cập nhật thông tin người dùng thành công!");
   });
+  updateUserStatus = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.params.id as string;
+      const status = updateUserStatusRequestDto(req.body.status as UserStatus);
+      const currentUser = req.user!;
+
+      const result = await userService.updateUserStatus(
+        userId,
+        currentUser,
+        status,
+      );
+      sendSuccess(res, result, "Cập nhật trạng thái người dùng thành công!");
+    },
+  );
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.params.id as string;
     const currentUser = req.user!;

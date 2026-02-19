@@ -4,7 +4,12 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { sendSuccess } from "../../utils/response";
 import { NotFoundError, ValidationError } from "../../error/AppError";
 import { uploadStream } from "../../utils/uploadStream";
-import ShopValidation from "../../validations/shop.validation";
+import productService from "../../services/public/product.service";
+import {
+  createShopRequestDto,
+  updateShopRequestDto,
+  updateShopStatusRequestDto,
+} from "../../dtos/shop";
 
 class ShopController {
   getMyShop = asyncHandler(
@@ -15,9 +20,25 @@ class ShopController {
       sendSuccess(res, result, "Lấy thông tin cửa hàng thành công!");
     },
   );
+  getMyProduct = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const { page, limit } = req.pagination!;
 
+      const shopId = req.user?.shopId;
+      if (!shopId) throw new NotFoundError("Bạn chưa có cửa hàng!");
+
+      const data = await productService.getShopProducts(shopId, {
+        page,
+        limit,
+        search: req.query.search as string,
+        status: req.query.status as string,
+      });
+
+      sendSuccess(res, data, "Lấy sản phẩm của cửa hàng thành công!");
+    },
+  );
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const data = ShopValidation.createShopValidation(req.body);
+    const data = createShopRequestDto(req.body);
 
     const sellerId = req.user?.userId as string;
     const result = await shopService.createShop(sellerId, data);
@@ -26,20 +47,31 @@ class ShopController {
   });
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { name, address, phone, slug, description, status } = req.body;
+    const dataValidated = updateShopRequestDto(req.body);
     const sellerId = req.user?.userId as string;
     const shopId = req.user?.shopId;
     if (!shopId) throw new NotFoundError("Bạn chưa có Shop!");
-    const result = await shopService.updateShop(sellerId, shopId, {
-      name,
-      address,
-      phone,
-      slug,
-      description,
-      status,
-    });
+    const result = await shopService.updateShop(
+      sellerId,
+      shopId,
+      dataValidated,
+    );
     sendSuccess(res, result, "Chỉnh sửa thông tin shop thành công!");
   });
+  updateShopStatus = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const statusValidated = updateShopStatusRequestDto(req.body);
+      const sellerId = req.user?.userId as string;
+      const shopId = req.user?.shopId;
+      if (!shopId) throw new NotFoundError("Bạn chưa có Shop!");
+      const result = await shopService.updateShopStatus(
+        sellerId,
+        shopId,
+        statusValidated,
+      );
+      sendSuccess(res, result, "Chỉnh sửa thông tin shop thành công!");
+    },
+  );
 
   updateLogo = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
@@ -64,6 +96,7 @@ class ShopController {
       );
     },
   );
+
   updateBackground = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const sellerId = req.user?.userId as string;

@@ -12,7 +12,13 @@ export const CacheTTL = {
     list: 60,
   },
   shop: {
-    list: 3 * 60,
     me: 3 * 60,
+    detail: 3 * 60,
+    list: 3 * 60,
+    product: 3 * 60,
+  },
+  product: {
+    detail: 3 * 60,
+    list: 3 * 60,
   },
 };

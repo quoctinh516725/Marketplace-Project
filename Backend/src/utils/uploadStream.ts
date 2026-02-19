@@ -9,7 +9,7 @@ export async function uploadStream(
   file: Express.Multer.File,
   options: UploadOptions,
 ) {
-  return await new Promise((resolve, rejects) => {
+  return await new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: options.folder,
@@ -17,7 +17,7 @@ export async function uploadStream(
         overwrite: options.overwrite,
       },
       (error, result) => {
-        if (error) rejects(error);
+        if (error) reject(error);
         resolve(result);
       },
     );

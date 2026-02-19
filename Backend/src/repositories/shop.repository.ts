@@ -1,12 +1,14 @@
-import { constants } from "node:buffer";
 import { Prisma, Shop } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
 import { ShopStatus } from "../constants/shopStatus";
-import { ConflictError } from "../error/AppError";
 import { InputAll, PrismaType } from "../types";
-import { PaginatedResponse } from "../types/pagination.type";
+import {
+  ShopDetailResult,
+  ShopListResult,
+  toShopDetailResult,
+} from "../types/shop.type";
 
-export interface CreateShop {
+export interface CreateShopData {
   name: string;
   address: string;
   phone: string;
@@ -14,16 +16,14 @@ export interface CreateShop {
   description?: string;
 }
 
-export interface UpdateShop extends Partial<CreateShop> {
+export interface UpdateShopData extends Partial<CreateShopData> {
   status?: ShopStatus;
   logoUrl?: string;
   backgroundUrl?: string;
 }
 
-export type ShopAllResponse = PaginatedResponse<Shop>;
-
 class ShopRepository {
-  getAll = async (input: InputAll): Promise<ShopAllResponse> => {
+  getAll = async (input: InputAll): Promise<ShopListResult> => {
     const { status, page, limit, search } = input;
 
     const skip = (page - 1) * limit;
@@ -36,42 +36,55 @@ class ShopRepository {
         },
       }),
     };
-    const [data, total] = await Promise.all([
-      prisma.shop.findMany({ where, skip, orderBy: { name: "asc" }, take }),
+    const [shops, total] = await Promise.all([
+      prisma.shop.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { name: "asc" },
+      }),
       prisma.shop.count({ where }),
     ]);
 
+    const data = shops.map(toShopDetailResult);
+
     return {
       data,
-      pagination: {
-        limit,
-        page,
-        total,
-      },
+      total,
     };
   };
 
-  create = async (sellerId: string, data: CreateShop): Promise<Shop> => {
-    return await prisma.shop.create({ data: { ...data, sellerId } });
+  create = async (
+    sellerId: string,
+    data: CreateShopData,
+  ): Promise<ShopDetailResult> => {
+    const shop = await prisma.shop.create({ data: { ...data, sellerId } });
+    return toShopDetailResult(shop);
   };
   update = async (
     client: PrismaType,
     id: string,
-    data: UpdateShop,
-  ): Promise<Shop> => {
-    return await client.shop.update({ where: { id }, data });
+    data: UpdateShopData,
+  ): Promise<ShopDetailResult> => {
+    const shop = await client.shop.update({ where: { id }, data });
+    return toShopDetailResult(shop);
   };
 
-  findShopBySeller = async (sellerId: string): Promise<Shop | null> => {
-    return await prisma.shop.findUnique({ where: { sellerId } });
+  findShopBySeller = async (
+    sellerId: string,
+  ): Promise<ShopDetailResult | null> => {
+    const shop = await prisma.shop.findUnique({ where: { sellerId } });
+    return shop ? toShopDetailResult(shop) : null;
   };
 
-  findShopById = async (id: string): Promise<Shop | null> => {
-    return await prisma.shop.findUnique({ where: { id } });
+  findShopById = async (id: string): Promise<ShopDetailResult | null> => {
+    const shop = await prisma.shop.findUnique({ where: { id } });
+    return shop ? toShopDetailResult(shop) : null;
   };
 
-  findBySlug = async (slug: string): Promise<Shop | null> => {
-    return await prisma.shop.findFirst({ where: { slug } });
+  findBySlug = async (slug: string): Promise<ShopDetailResult | null> => {
+    const shop = await prisma.shop.findFirst({ where: { slug } });
+    return shop ? toShopDetailResult(shop) : null;
   };
 }
 

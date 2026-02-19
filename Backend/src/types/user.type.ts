@@ -1,7 +1,6 @@
-import { UserRole, UserStatus } from "../constants";
-import { PaginatedResponse } from "./pagination.type";
+import { PaginatedResult } from "../dtos";
 
-export type UserResponse = {
+export type UserBasicResult = {
   id: string;
   email: string;
   username: string;
@@ -11,21 +10,37 @@ export type UserResponse = {
   dateOfBirth: Date | null;
   avatarUrl: string | null;
   status: string;
-  updatedAt: Date;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+};
+export type UserDetailResult = UserBasicResult & {
+  deletedAt: Date | null;
+  userRoles: {
+    role: {
+      id: string;
+      code: string;
+    };
+  }[];
+
+  userPermissions: {
+    permission: {
+      id: string;
+      code: string;
+    };
+  }[];
 };
 
-export type UserInforResponse = UserResponse & { roles: string[] };
-export type UserUpdateResponse = UserResponse;
-
-export type UserAllResponse = PaginatedResponse<UserResponse>;
-export type UserProfileResponse = {
+export type UserProfileResult = {
   id: string;
   username: string;
-  avatarUrl?: string;
-  fullName?: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  userRoles: {
+    role: {
+      id: string;
+      code: string;
+    };
+  }[];
 };
 
-export type UserProfileWithRoles = {
-  profile: UserProfileResponse;
-  roleCodes: string[];
-};
+export type UserListResult = PaginatedResult<UserBasicResult>;

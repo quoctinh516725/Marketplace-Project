@@ -33,6 +33,33 @@ userRoute.delete(
   requirePermission([PermissionCode.DELETE_USER]),
   userController.delete,
 );
+userRoute.patch(
+  "/:id/status",
+  requirePermission([PermissionCode.MANAGE_USER_STATUS]),
+  userController.updateUserStatus,
+);
+
+userRoute.post(
+  "/:userId/roles",
+  requireRole([UserRole.ADMIN]),
+  roleController.assignRoleToUser,
+);
+userRoute.delete(
+  "/:userId/roles",
+  requireRole([UserRole.ADMIN]),
+  roleController.revokeRoleFromUser,
+);
+
+userRoute.post(
+  "/:userId/permissions",
+  requireRole([UserRole.ADMIN]),
+  permissionController.assignPermissionToUser,
+);
+userRoute.delete(
+  "/:userId/permissions",
+  requireRole([UserRole.ADMIN]),
+  permissionController.removePermissionFromUser,
+);
 router.use("/users", userRoute);
 
 // --- ROLE ROUTE --- //
@@ -40,12 +67,21 @@ const roleRoute = Router();
 roleRoute.use(requireRole([UserRole.ADMIN]));
 
 roleRoute.get("/", roleController.getAllRoles);
+roleRoute.get("/:id", roleController.getRoleById);
+
 roleRoute.post("/", roleController.create);
 roleRoute.patch("/:id", roleController.updateRole);
 roleRoute.delete("/:id", roleController.delete);
 
-roleRoute.post("/:id/users", roleController.assignRoleToUser);
-roleRoute.delete("/:id/users", roleController.revokeRoleFromUser);
+roleRoute.post(
+  "/:roleId/permissions",
+  permissionController.assignPermissionToRole,
+);
+roleRoute.delete(
+  "/:roleId/permissions",
+  permissionController.removePermissionFromRole,
+);
+
 router.use("/roles", roleRoute);
 
 // --- PERMISION ROUTE --- //
@@ -56,23 +92,6 @@ permissionRoute.post("/", permissionController.create);
 permissionRoute.get("/", validatePagination, permissionController.getAll);
 permissionRoute.patch("/:id", permissionController.update);
 permissionRoute.delete("/:id", permissionController.delete);
-
-permissionRoute.post(
-  "/:roleId/roles",
-  permissionController.assignPermissionToRole,
-);
-permissionRoute.delete(
-  "/:roleId/roles",
-  permissionController.removePermissionFromRole,
-);
-permissionRoute.post(
-  "/:userId/users",
-  permissionController.assignPermissionToUser,
-);
-permissionRoute.delete(
-  "/:userId/users",
-  permissionController.removePermissionFromUser,
-);
 
 router.use("/permissions", permissionRoute);
 

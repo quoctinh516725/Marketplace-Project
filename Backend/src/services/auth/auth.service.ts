@@ -27,33 +27,17 @@ import roleService from "../role/role.service";
 import roleRepository from "../../repositories/role.repository";
 import permissionRepository from "../../repositories/permission.repository";
 import shopRepository from "../../repositories/shop.repository";
-
-export interface LoginData {
-  emailOrUsername: string;
-  password: string;
-}
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  username: string;
-}
-
-export interface AuthResponse {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    fullName: string | null;
-    avatarUrl: string | null;
-    status: string;
-  };
-  accessToken: string;
-  refreshToken: string;
-}
+import {
+  LoginRequestDto,
+  LoginResponseDto,
+  RegisterRequestDto,
+  RegisterResponseDto,
+  RefreshTokenResponseDto,
+  UserInfoDto,
+} from "../../dtos";
 
 class AuthService {
-  login = async (data: LoginData): Promise<AuthResponse> => {
+  login = async (data: LoginRequestDto): Promise<LoginResponseDto> => {
     const { emailOrUsername, password } = data;
     // Check exist
 
@@ -121,9 +105,12 @@ class AuthService {
 
     //Get expiredAt for Create refreshToken
     const decoded = jwt.decode(refreshToken) as JwtPayload;
-    const expiredAt = new Date(decoded.exp! * 1000);
+    if (!decoded || !decoded.exp) {
+      throw new ValidationError("Không thể decode refresh token!");
+    }
+    const expiredAt = new Date(decoded.exp * 1000);
 
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Update lastLoginAt
       await userRepository.update(tx, user.id, { lastLoginAt: new Date() });
 
@@ -136,23 +123,22 @@ class AuthService {
         token: refreshToken,
         expiredAt,
       });
-
-      return {
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          avatarUrl: user.avatarUrl,
-          status: user.status,
-        },
-        accessToken,
-        refreshToken,
-      };
     });
-    return result;
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      },
+      accessToken,
+      refreshToken,
+    };
   };
-  register = async (data: RegisterData): Promise<AuthResponse> => {
+  register = async (data: RegisterRequestDto): Promise<RegisterResponseDto> => {
     const { email, username, password } = data;
 
     //Check exist email
@@ -198,7 +184,10 @@ class AuthService {
       //Sinh Refresh Token
       const refreshToken = generateRefreshToken(newUser.id);
       const decoded = jwt.decode(refreshToken) as JwtPayload;
-      const expiredAt = new Date(decoded.exp! * 1000);
+      if (!decoded || !decoded.exp) {
+        throw new ValidationError("Không thể decode refresh token!");
+      }
+      const expiredAt = new Date(decoded.exp * 1000);
 
       //Lưu Refresh Token vào DB
       await refreshTokenRepository.create(tx, {
@@ -222,7 +211,8 @@ class AuthService {
 
     //Cache thông tin user
     const ttl = getTokenRemainingTime(accessToken);
-    const { password: hiddenPassword, ...user } = result.newUser;
+    const user = result.newUser;
+
     await addAuthUserCache(
       {
         id: user.id,
@@ -235,20 +225,20 @@ class AuthService {
     );
     return {
       user: {
-        id: result.newUser.id,
-        username: result.newUser.username,
-        email: result.newUser.email,
-        fullName: result.newUser.fullName,
-        avatarUrl: result.newUser.avatarUrl,
-        status: result.newUser.status,
-      },
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      } as UserInfoDto,
       accessToken,
       refreshToken: result.refreshToken,
     };
   };
   refreshToken = async (
     refreshToken: string,
-  ): Promise<{ accessToken: string }> => {
+  ): Promise<RefreshTokenResponseDto> => {
     //Check revoked
     const refreshTokenFind =
       await refreshTokenRepository.findByToken(refreshToken);
