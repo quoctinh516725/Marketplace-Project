@@ -12,16 +12,26 @@ router.use("/users", userRoute);
 // SHOP ROUTE
 const shopRoute = Router();
 shopRoute.get("/:slug", shopController.getShopBySlug);
-router.use("/shops", shopRoute)
+router.use("/shops", shopRoute);
 
 // PRODUCT ROUTE
 const productRoute = Router();
 
-// Get Product by Shop
+productRoute.get("/", validatePagination, productController.getAllProducts);
+
+productRoute.get("/:id", validatePagination, productController.getProductById);
+
 productRoute.get(
   "/shop/:shopId",
   validatePagination,
   productController.getShopProducts,
 );
+
+productRoute.get(
+  "/category/:categoryId",
+  validatePagination,
+  productController.getCategoryProducts,
+);
+
 router.use("/products", productRoute);
 export default router;

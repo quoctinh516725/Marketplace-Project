@@ -3,9 +3,11 @@ import { prisma } from "../config/prisma";
 import { ShopStatus } from "../constants/shopStatus";
 import { InputAll, PrismaType } from "../types";
 import {
+  selectShopDetail,
+  selectShopPublic,
   ShopDetailResult,
   ShopListResult,
-  toShopDetailResult,
+  ShopPublicResult,
 } from "../types/shop.type";
 
 export interface CreateShopData {
@@ -39,17 +41,15 @@ class ShopRepository {
     const [shops, total] = await Promise.all([
       prisma.shop.findMany({
         where,
+        select: selectShopDetail,
         skip,
         take,
         orderBy: { name: "asc" },
       }),
       prisma.shop.count({ where }),
     ]);
-
-    const data = shops.map(toShopDetailResult);
-
     return {
-      data,
+      data: shops,
       total,
     };
   };
@@ -58,33 +58,45 @@ class ShopRepository {
     sellerId: string,
     data: CreateShopData,
   ): Promise<ShopDetailResult> => {
-    const shop = await prisma.shop.create({ data: { ...data, sellerId } });
-    return toShopDetailResult(shop);
+    return await prisma.shop.create({
+      data: { ...data, sellerId },
+      select: selectShopDetail,
+    });
   };
+
   update = async (
     client: PrismaType,
     id: string,
     data: UpdateShopData,
   ): Promise<ShopDetailResult> => {
-    const shop = await client.shop.update({ where: { id }, data });
-    return toShopDetailResult(shop);
+    return await client.shop.update({
+      where: { id },
+      data,
+      select: selectShopDetail,
+    });
   };
 
   findShopBySeller = async (
     sellerId: string,
   ): Promise<ShopDetailResult | null> => {
-    const shop = await prisma.shop.findUnique({ where: { sellerId } });
-    return shop ? toShopDetailResult(shop) : null;
+    return await prisma.shop.findUnique({
+      where: { sellerId },
+      select: selectShopDetail,
+    });
   };
 
   findShopById = async (id: string): Promise<ShopDetailResult | null> => {
-    const shop = await prisma.shop.findUnique({ where: { id } });
-    return shop ? toShopDetailResult(shop) : null;
+    return await prisma.shop.findUnique({
+      where: { id },
+      select: selectShopDetail,
+    });
   };
 
-  findBySlug = async (slug: string): Promise<ShopDetailResult | null> => {
-    const shop = await prisma.shop.findFirst({ where: { slug } });
-    return shop ? toShopDetailResult(shop) : null;
+  findBySlug = async (slug: string): Promise<ShopPublicResult | null> => {
+    return await prisma.shop.findFirst({
+      where: { slug },
+      select: selectShopPublic,
+    });
   };
 }
 

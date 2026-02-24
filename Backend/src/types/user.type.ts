@@ -1,46 +1,87 @@
+import { Prisma } from "../../generated/prisma/client";
 import { PaginatedResult } from "../dtos";
+export const selectUserDetail = {
+  id: true,
+  email: true,
+  username: true,
+  fullName: true,
+  phone: true,
+  avatarUrl: true,
+  gender: true,
+  dateOfBirth: true,
+  status: true,
+  lastLoginAt: true,
+  createdAt: true,
+  deletedAt: true,
 
-export type UserBasicResult = {
-  id: string;
-  email: string;
-  username: string;
-  fullName: string | null;
-  phone: string | null;
-  gender: string | null;
-  dateOfBirth: Date | null;
-  avatarUrl: string | null;
-  status: string;
-  lastLoginAt: Date | null;
-  createdAt: Date;
-};
-export type UserDetailResult = UserBasicResult & {
-  deletedAt: Date | null;
   userRoles: {
-    role: {
-      id: string;
-      code: string;
-    };
-  }[];
+    select: {
+      role: {
+        select: {
+          id: true,
+          code: true,
+        },
+      },
+    },
+  },
 
   userPermissions: {
-    permission: {
-      id: string;
-      code: string;
-    };
-  }[];
-};
+    select: {
+      permission: {
+        select: {
+          id: true,
+          code: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.UserSelect;
 
-export type UserProfileResult = {
-  id: string;
-  username: string;
-  fullName: string | null;
-  avatarUrl: string | null;
+export const selectUserBasic = {
+  id: true,
+  email: true,
+  username: true,
+  fullName: true,
+  phone: true,
+  avatarUrl: true,
+  gender: true,
+  dateOfBirth: true,
+  status: true,
+  lastLoginAt: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+
+export const selectUserProfile = {
+  id: true,
+  username: true,
+  fullName: true,
+  avatarUrl: true,
   userRoles: {
-    role: {
-      id: string;
-      code: string;
-    };
-  }[];
-};
+    select: {
+      role: {
+        select: {
+          id: true,
+          code: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.UserSelect;
 
-export type UserListResult = PaginatedResult<UserBasicResult>;
+export type UserBasicResult = Prisma.UserGetPayload<{
+  select: typeof selectUserBasic;
+}>;
+
+export type UserDetailResult = Prisma.UserGetPayload<{
+  select: typeof selectUserDetail;
+}>;
+
+export type UserProfileResult = Prisma.UserGetPayload<{
+  select: typeof selectUserProfile;
+}>;
+
+export type UserListResult = PaginatedResult<
+  Prisma.UserGetPayload<{
+    select: typeof selectUserBasic;
+  }>
+>;

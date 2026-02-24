@@ -15,13 +15,10 @@ import {
 import {
   ConflictError,
   NotFoundError,
-  ValidationError,
 } from "../../error/AppError";
-import roleRepository, {
-  roleBasicSelect,
-} from "../../repositories/role.repository";
+import roleRepository from "../../repositories/role.repository";
 import userRepository from "../../repositories/user.repository";
-import { PrismaType, RoleBasicResult } from "../../types";
+import { PrismaType, RoleBasicResult, roleBasicSelect } from "../../types";
 
 class RoleService {
   private validateRoles = async (

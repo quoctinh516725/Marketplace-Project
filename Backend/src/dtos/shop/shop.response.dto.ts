@@ -16,6 +16,19 @@ export type ShopDetailResponseDto = {
   totalReviews: number;
   commissionRate: number | null;
   status: ShopStatus;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ShopPublicResponseDto = {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  description: string | null;
+  logoUrl: string | null;
+  backgroundUrl: string | null;
+  totalProducts: number;
 };
 
 export type ShopListResponseDto = PaginatedResponseDto<ShopDetailResponseDto>;

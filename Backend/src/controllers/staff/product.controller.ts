@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler";
-import productService from "../../services/public/product.service";
 import { sendSuccess } from "../../utils/response";
+import productService from "../../services/staff/product.service";
 
 class ProductController {
   getAllProducts = asyncHandler(
@@ -15,6 +15,14 @@ class ProductController {
       });
 
       sendSuccess(res, data, "Lấy tất cả sản phẩm thành công!");
+    },
+  );
+
+  getProductById = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const id = req.params.id as string;
+      const data = await productService.getProductById(id);
+      sendSuccess(res, data, "Lấy sản phẩm thành công!");
     },
   );
 }

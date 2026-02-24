@@ -169,7 +169,7 @@ model Category {
   parent     Category?           @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children   Category[]          @relation("CategoryChildren")
   products   Product[]
-  attributes CategoryAttribute[]
+  categoryAttributes CategoryAttribute[]
 
   @@map("categories")
 }
@@ -192,7 +192,7 @@ model Product {
   id         String @id @default(uuid())
   shopId     String @map("shop_id")
   categoryId String @map("category_id")
-  brandId    String @map("brand_id")
+  brandId    String? @map("brand_id")
 
   name          String
   slug          String  @unique
@@ -201,14 +201,15 @@ model Product {
    originalPrice Decimal? @map("original_price")
   soldCount     Int      @default(0) @map("sold_count")
   rating        Float?   @default(0)
-  status        String  @map("PENDING_APPROVE")
+  status        String  @default("PENDING_APPROVE")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deleteAt DateTime? @map("delete_at")
 
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   images ProductImage[]
   variants ProductVariant[]
   tags ProductTag[]
@@ -241,7 +242,7 @@ model ProductVariant {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   product    Product            @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  attributes ProductAttribute[]
+  productAttributes ProductAttribute[]
 
   @@map("product_variants")
 }
@@ -252,9 +253,9 @@ model Attribute {
   code          String  @unique
   description   String?
 
-  categories CategoryAttribute[]
+  categoryAttributes CategoryAttribute[]
   values             AttributeValue[]
-  products  ProductAttribute[]
+  productAttributes  ProductAttribute[]
 
   @@map("attributes")
 }
@@ -264,21 +265,10 @@ model AttributeValue {
   attributeId String @map("attribute_id")
   value       String
 
-  attribute         Attribute          @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   productAttributes ProductAttribute[]
+  attribute         Attribute          @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
   @@map("attribute_values")
-}
-
-model CategoryAttribute {
-  id          String @id @default(uuid())
-  categoryId  String @map("category_id")
-  attributeId String @map("attribute_id")
-
-  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
-
-  @@map("CategoryAttribute")
 }
 
 model ProductAttribute {
@@ -293,6 +283,19 @@ model ProductAttribute {
 
   @@map("product_attributes")
 }
+
+model CategoryAttribute {
+  id          String @id @default(uuid())
+  categoryId  String @map("category_id")
+  attributeId String @map("attribute_id")
+
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@map("CategoryAttribute")
+}
+
+
 
 model ProductTag {
   id        String @id @default(uuid())

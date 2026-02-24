@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { sendSuccess } from "../../utils/response";
-import shopService from "../../services/shop/staff/shop.service";
+import shopService from "../../services/staff/shop.service";
 
 class ShopController {
   getAllShop = asyncHandler(

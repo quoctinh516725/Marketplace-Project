@@ -13,7 +13,7 @@ router.use("/admin", adminRoute);
 router.use("/staff", staffRoute);
 
 router.use("/users", userRoute);
-router.use("/shops", shopRoute);
+router.use("/seller", shopRoute);
 router.use("/public", publicRoute);
 
 export default router;

@@ -1,23 +1,23 @@
-import { Prisma, Shop } from "../../../../generated/prisma/client";
-import { CacheKey } from "../../../cache/cache.key";
-import cacheTag from "../../../cache/cache.tag";
-import { CacheTTL } from "../../../cache/cache.ttl";
-import { prisma } from "../../../config/prisma";
-import { UserRole } from "../../../constants";
-import { ShopStatus } from "../../../constants/shopStatus";
-import { ShopDetailResponseDto, ShopListResponseDto } from "../../../dtos/shop";
+import { CacheKey } from "../../cache/cache.key";
+import cacheTag from "../../cache/cache.tag";
+import { CacheTTL } from "../../cache/cache.ttl";
+import { prisma } from "../../config/prisma";
+import { UserRole } from "../../constants";
+import { ShopStatus } from "../../constants/shopStatus";
+import { ShopDetailResponseDto, ShopListResponseDto } from "../../dtos/shop";
+import { toShopDetailResponse } from "../../dtos/shop/mapper.dto";
 import {
   ConflictError,
   NotFoundError,
   ValidationError,
-} from "../../../error/AppError";
-import roleRepository from "../../../repositories/role.repository";
-import shopRepository from "../../../repositories/shop.repository";
-import userRepository from "../../../repositories/user.repository";
-import { InputAll } from "../../../types";
-import { cacheAsync } from "../../../utils/cache";
-import { deleteAuthUserCache } from "../../auth/auth.cache";
-import { deleteUserCache } from "../../user/user.cache";
+} from "../../error/AppError";
+import roleRepository from "../../repositories/role.repository";
+import shopRepository from "../../repositories/shop.repository";
+import userRepository from "../../repositories/user.repository";
+import { InputAll } from "../../types";
+import { cacheAsync } from "../../utils/cache";
+import { deleteAuthUserCache } from "../auth/auth.cache";
+import { deleteUserCache } from "../user/user.cache";
 
 class ShopService {
   getAllShop = async (input: InputAll): Promise<ShopListResponseDto> => {
@@ -42,7 +42,7 @@ class ShopService {
         });
 
         const data = {
-          data: shops.data,
+          data: shops.data.map(toShopDetailResponse),
           pagination: {
             page,
             limit,
@@ -100,17 +100,20 @@ class ShopService {
       cacheTag.invalidateTag(`shop:${shop.id}`),
     ]);
 
-    return updatedShop;
+    return toShopDetailResponse(updatedShop);
   };
 
-  bannedShop = async (staffId: string, shopId: string): Promise<ShopDetailResponseDto> => {
+  bannedShop = async (
+    staffId: string,
+    shopId: string,
+  ): Promise<ShopDetailResponseDto> => {
     const shop = await shopRepository.findShopById(shopId);
     if (!shop) throw new NotFoundError("Cửa hàng không tồn tại!");
 
     const sellerRole = await roleRepository.findRoleByCode(UserRole.SELLER);
     if (!sellerRole) throw new NotFoundError("Chức năng không tồn tại!");
 
-    const updatedShop = await prisma.$transaction(async (tx) => {
+    const bannedShop = await prisma.$transaction(async (tx) => {
       const result = await shopRepository.update(tx, shopId, {
         status: ShopStatus.BANNED,
       });
@@ -129,7 +132,7 @@ class ShopService {
       cacheTag.invalidateTag(`shop:${shop.id}`),
     ]);
 
-    return updatedShop;
+    return toShopDetailResponse(bannedShop);
   };
 }
 
