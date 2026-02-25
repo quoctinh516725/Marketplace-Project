@@ -18,11 +18,7 @@ export interface CreateShopData {
   description?: string;
 }
 
-export interface UpdateShopData extends Partial<CreateShopData> {
-  status?: ShopStatus;
-  logoUrl?: string;
-  backgroundUrl?: string;
-}
+export type UpdateShopData = Prisma.ShopUpdateInput;
 
 class ShopRepository {
   getAll = async (input: InputAll): Promise<ShopListResult> => {

@@ -59,11 +59,13 @@ class ProductController {
     },
   );
 
-  // getProductBySlug = asyncHandler(
-  //   async (req: Request, res: Response): Promise<void> => {
-  //     sendSuccess(res, data, "Lấy tất cả sản phẩm thành công!");
-  //   },
-  // );
+  getProductBySlug = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const slug = req.params.slug as string;
+      const data = productService.getProductBySlug(slug);
+      sendSuccess(res, data, "Lấy sản phẩm thành công!");
+    },
+  );
 
   // searchProducts = asyncHandler(
   //   async (req: Request, res: Response): Promise<void> => {

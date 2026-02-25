@@ -25,5 +25,8 @@ class ProductController {
       sendSuccess(res, data, "Lấy sản phẩm thành công!");
     },
   );
+
+  // reviewProductApproval;
+  // banProduct;
 }
 export default new ProductController();

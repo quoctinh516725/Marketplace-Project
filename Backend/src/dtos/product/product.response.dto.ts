@@ -5,6 +5,7 @@ type IdName = {
   id: string;
   name: string;
 };
+
 type ProductBrand = IdName & {
   logoUrl: string | null;
 };
@@ -12,6 +13,7 @@ type ProductBrand = IdName & {
 export type ProductBasicResponseDto = {
   id: string;
   name: string;
+  code: string;
   slug: string;
   description: string | null;
   thumbnailUrl: string;
@@ -24,7 +26,6 @@ export type ProductBasicResponseDto = {
 //PUBLIC
 export type ProductDetailResponseDto = ProductBasicResponseDto & {
   shop: IdName;
-  category: IdName;
   brand: ProductBrand | null;
   images: { id: string; imageUrl: string }[];
   variants: {
@@ -36,14 +37,15 @@ export type ProductDetailResponseDto = ProductBasicResponseDto & {
     stock: number;
     weight: number | null;
     status: ProductStatus;
-    attribute: {
+    attributes: {
       attributeId: string;
       code: string;
       valueId: string | null;
       value: string | null;
     }[];
   }[];
-  tags: { id: string; tag: string }[];
+  tags: { id: string; name: string }[];
+  categories: { id: string; name: string }[];
 };
 
 export type ProductListResponseDto =

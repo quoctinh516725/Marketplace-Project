@@ -176,6 +176,7 @@ class UserService {
 
     return userDeleted;
   };
+  
   updateAvatar = async (
     userId: string,
     avatarUrl: string,

@@ -4,6 +4,7 @@ import { PaginatedResult } from "../dtos";
 export const selectProductBasic = {
   id: true,
   name: true,
+  code: true,
   slug: true,
   description: true,
   thumbnailUrl: true,
@@ -15,7 +16,9 @@ export const selectProductBasic = {
 
 export const selectProductDetail = {
   ...selectProductBasic,
-
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
   shop: {
     select: {
       id: true,
@@ -23,10 +26,14 @@ export const selectProductDetail = {
     },
   },
 
-  category: {
+  productCategories: {
     select: {
-      id: true,
-      name: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   },
 
@@ -74,10 +81,11 @@ export const selectProductDetail = {
     },
   },
 
-  tags: {
+  productTags: {
     select: {
-      id: true,
-      tag: true,
+      tag: {
+        select: { id: true, name: true },
+      },
     },
   },
 } satisfies Prisma.ProductSelect;

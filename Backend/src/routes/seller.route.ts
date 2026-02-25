@@ -8,6 +8,7 @@ import shopController from "../controllers/seller/shop.controller";
 import { PermissionCode } from "../constants/permissionCode";
 import { validatePagination } from "../validations/public.validation";
 import productController from "../controllers/seller/product.controller";
+
 const router = express.Router();
 router.use(authenticate);
 
@@ -48,6 +49,7 @@ shopRouter.patch(
 );
 router.use("/shops", shopRouter);
 
+// MANAGE PRODUCT
 const productRouter = express.Router();
 productRouter.get(
   "/",
@@ -55,9 +57,25 @@ productRouter.get(
   requirePermission([PermissionCode.VIEW_PRODUCT]),
   productController.getMyProducts,
 );
+productRouter.post(
+  "/",
+  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  productController.createProduct,
+);
+productRouter.post(
+  "/upload-thumbnail",
+  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  upload.single("thumbnail"),
+  productController.uploadThumbnail,
+);
+productRouter.post(
+  "/upload-images",
+  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  upload.array("images", 10),
+  productController.uploadImages,
+);
 productRouter.get(
   "/:id",
-  validatePagination,
   requirePermission([PermissionCode.VIEW_PRODUCT]),
   productController.getMyProductById,
 );

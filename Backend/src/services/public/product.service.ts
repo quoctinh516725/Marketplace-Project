@@ -16,7 +16,6 @@ import categoryRepository from "../../repositories/category.repository";
 import productRepository from "../../repositories/product.repository";
 import shopRepository from "../../repositories/shop.repository";
 import { InputAll } from "../../types";
-import { asyncHandler } from "../../utils/asyncHandler";
 import { cacheAsync } from "../../utils/cache";
 class ProductService {
   getShopProducts = async (
@@ -116,6 +115,24 @@ class ProductService {
         if (!product) throw new NotFoundError("Sản phẩm không tồn tại!");
         const data = toProductDetailResponse(product);
         return { data };
+      },
+    );
+  };
+  getProductBySlug = async (
+    slug: string,
+  ): Promise<ProductDetailResponseDto> => {
+    return cacheAsync(
+      CacheKey.product.public.detail(slug),
+      CacheTTL.product.detail,
+      [],
+      async () => {
+        const product = await productRepository.getProductBySlug(
+          slug,
+          ProductStatus.ACTIVE,
+        );
+        if (!product) throw new NotFoundError("Sản phẩm không tồn tại!");
+        const data = toProductDetailResponse(product);
+        return { data, tags: [`product:${product.id}`] };
       },
     );
   };

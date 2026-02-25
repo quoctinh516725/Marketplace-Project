@@ -33,5 +33,7 @@ productRoute.get(
   productController.getCategoryProducts,
 );
 
+productRoute.get("/slug/:slug", productController.getProductBySlug);
+
 router.use("/products", productRoute);
 export default router;

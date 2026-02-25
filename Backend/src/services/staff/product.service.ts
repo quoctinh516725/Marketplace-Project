@@ -2,11 +2,14 @@ import { CacheKey } from "../../cache/cache.key";
 import { CacheTTL } from "../../cache/cache.ttl";
 import { ProductStatus } from "../../constants/productStatus";
 import {
+  toProductDetailManageResponse,
   toProductDetailResponse,
   toProductPublicResponse,
 } from "../../dtos/product/mapper.dto";
 import {
+  ProductDetailManageResponseDto,
   ProductDetailResponseDto,
+  ProductListManageResponseDto,
   ProductListResponseDto,
 } from "../../dtos/product/product.response.dto";
 import { NotFoundError, ValidationError } from "../../error/AppError";
@@ -15,7 +18,9 @@ import { InputAll } from "../../types";
 import { cacheAsync } from "../../utils/cache";
 
 class ProductService {
-  getAllProducts = async (input: InputAll): Promise<ProductListResponseDto> => {
+  getAllProducts = async (
+    input: InputAll,
+  ): Promise<ProductListManageResponseDto> => {
     return cacheAsync(
       CacheKey.product.staff.list(input),
       CacheTTL.product.list,
@@ -43,7 +48,9 @@ class ProductService {
   };
 
   // Get product by ID
-  getProductById = async (id: string): Promise<ProductDetailResponseDto> => {
+  getProductById = async (
+    id: string,
+  ): Promise<ProductDetailManageResponseDto> => {
     return cacheAsync(
       CacheKey.product.staff.detail(id),
       CacheTTL.product.detail,
@@ -52,7 +59,7 @@ class ProductService {
         const product = await productRepository.getProductById(id);
         if (!product) throw new NotFoundError("Sản phẩm không tồn tại!");
 
-        const data = toProductDetailResponse(product);
+        const data = toProductDetailManageResponse(product);
         return { data };
       },
     );
