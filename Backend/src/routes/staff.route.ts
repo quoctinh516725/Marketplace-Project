@@ -43,6 +43,16 @@ productRoute.get(
   requirePermission([PermissionCode.VIEW_PRODUCT]),
   productController.getProductById,
 );
+productRoute.post(
+  "/:id/review",
+  requirePermission([PermissionCode.APPROVE_PRODUCT]),
+  productController.reviewProductApproval,
+);
+productRoute.patch(
+  "/:id/status",
+  requirePermission([PermissionCode.APPROVE_PRODUCT]),
+  productController.updateProductStatus,
+);
 
 router.use("/products", productRoute);
 

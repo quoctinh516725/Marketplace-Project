@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { validatePagination } from "../validations/public.validation";
+import {
+  validatePagination,
+  validateSearchProducts,
+} from "../validations/public.validation";
 import productController from "../controllers/public/product.controller";
 import userController from "../controllers/user.controller";
 import shopController from "../controllers/public/shop.controller";
@@ -18,7 +21,12 @@ router.use("/shops", shopRoute);
 const productRoute = Router();
 
 productRoute.get("/", validatePagination, productController.getAllProducts);
-
+productRoute.get(
+  "/search",
+  validatePagination,
+  validateSearchProducts,
+  productController.searchProducts,
+);
 productRoute.get("/:id", validatePagination, productController.getProductById);
 
 productRoute.get(

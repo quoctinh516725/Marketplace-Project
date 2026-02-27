@@ -83,6 +83,7 @@ class ShopService {
 
         const user = await userRepository.findUserDetailById(tx, shop.sellerId);
         if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+        
         const userRoles = user.userRoles.map((r) => r.role.id);
         const allRoles = [...new Set([...userRoles, role?.id])];
 

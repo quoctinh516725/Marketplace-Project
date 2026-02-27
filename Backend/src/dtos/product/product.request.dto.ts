@@ -1,3 +1,4 @@
+import { ProductStatus } from "../../constants/productStatus";
 import { ValidationError } from "../../error/AppError";
 
 type CreateProductAttributeRequestData = {
@@ -18,17 +19,24 @@ type CreateProductVariantRequestData = {
 export type CreateProductRequestData = {
   brandId: string | null;
   name: string;
-  code: string;
   slug: string | null;
   description: string | null;
   thumbnailUrl: string;
   originalPrice: number | null;
   soldCount: number;
-  rating: number | null;
   images: { imageUrl: string; sortOrder: number }[];
   tags: { id: string }[];
   categories: { id: string }[];
   variants: CreateProductVariantRequestData[];
+};
+
+export type UpdateProductRequestData = {
+  brandId?: string | null;
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  originalPrice?: number | null;
+  soldCount?: number;
 };
 
 const toNumber = (
@@ -46,7 +54,9 @@ const toNumber = (
   return result;
 };
 
-export const createProductRequestDto = (data: any): CreateProductRequestData => {
+export const createProductRequestDto = (
+  data: any,
+): CreateProductRequestData => {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Dữ liệu không hợp lệ!");
   }
@@ -89,8 +99,12 @@ export const createProductRequestDto = (data: any): CreateProductRequestData => 
 
   const images = Array.isArray(data.images)
     ? data.images.map((img: any, index: number) => {
-        const imageUrl = typeof img?.imageUrl === "string" ? img.imageUrl.trim() : "";
-        const sortOrderValue = toNumber(img?.sortOrder ?? index, "Thứ tự ảnh") as number;
+        const imageUrl =
+          typeof img?.imageUrl === "string" ? img.imageUrl.trim() : "";
+        const sortOrderValue = toNumber(
+          img?.sortOrder ?? index,
+          "Thứ tự ảnh",
+        ) as number;
         if (!imageUrl) {
           throw new ValidationError(`images[${index}].imageUrl không hợp lệ!`);
         }
@@ -134,13 +148,19 @@ export const createProductRequestDto = (data: any): CreateProductRequestData => 
       );
 
       if (price < 0) {
-        throw new ValidationError(`variants[${variantIndex}].price không hợp lệ!`);
+        throw new ValidationError(
+          `variants[${variantIndex}].price không hợp lệ!`,
+        );
       }
       if (stock < 0) {
-        throw new ValidationError(`variants[${variantIndex}].stock không hợp lệ!`);
+        throw new ValidationError(
+          `variants[${variantIndex}].stock không hợp lệ!`,
+        );
       }
       if (weight !== null && weight < 0) {
-        throw new ValidationError(`variants[${variantIndex}].weight không hợp lệ!`);
+        throw new ValidationError(
+          `variants[${variantIndex}].weight không hợp lệ!`,
+        );
       }
 
       const attributesRaw = Array.isArray(variant?.attributes)
@@ -149,14 +169,17 @@ export const createProductRequestDto = (data: any): CreateProductRequestData => 
       const attributes: CreateProductAttributeRequestData[] = attributesRaw.map(
         (attr: any, attributeIndex: number) => {
           const attributeId =
-            typeof attr?.attributeId === "string" ? attr.attributeId.trim() : "";
+            typeof attr?.attributeId === "string"
+              ? attr.attributeId.trim()
+              : "";
           if (!attributeId) {
             throw new ValidationError(
               `variants[${variantIndex}].attributes[${attributeIndex}].attributeId không hợp lệ!`,
             );
           }
 
-          const value = typeof attr?.value === "string" ? attr.value.trim() : null;
+          const value =
+            typeof attr?.value === "string" ? attr.value.trim() : null;
           const attributeValueId =
             typeof attr?.attributeValueId === "string"
               ? attr.attributeValueId.trim()
@@ -173,7 +196,9 @@ export const createProductRequestDto = (data: any): CreateProductRequestData => 
       return {
         sku: typeof variant?.sku === "string" ? variant.sku.trim() : null,
         imageUrl:
-          typeof variant?.imageUrl === "string" ? variant.imageUrl.trim() : null,
+          typeof variant?.imageUrl === "string"
+            ? variant.imageUrl.trim()
+            : null,
         price,
         stock,
         weight,
@@ -185,16 +210,143 @@ export const createProductRequestDto = (data: any): CreateProductRequestData => 
   return {
     brandId: brandId || null,
     name,
-    code: typeof data.code === "string" ? data.code.trim() : "",
     slug: slug || null,
     description: description || null,
     thumbnailUrl,
     originalPrice,
     soldCount,
-    rating,
     images,
     tags,
     categories,
     variants,
   };
+};
+
+export const updateProductRequestDto = (
+  data: any,
+): UpdateProductRequestData => {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Du lieu khong hop le!");
+  }
+
+  const allowedData: UpdateProductRequestData = {};
+
+  const ALLOWED_FIELDS: (keyof UpdateProductRequestData)[] = [
+    "brandId",
+    "name",
+    "slug",
+    "description",
+    "originalPrice",
+    "soldCount",
+  ];
+
+  const invalidFields = Object.keys(data).filter(
+    (key) => !ALLOWED_FIELDS.includes(key as any),
+  );
+
+  if (invalidFields.length) {
+    throw new ValidationError(
+      `Khong duoc phep cap nhat ${invalidFields.join(", ")}`,
+    );
+  }
+
+  if (data.brandId !== undefined) {
+    if (data.brandId === null) {
+      allowedData.brandId = null;
+    } else if (typeof data.brandId === "string" && data.brandId.trim()) {
+      allowedData.brandId = data.brandId.trim();
+    } else {
+      throw new ValidationError("Brand khong hop le!");
+    }
+  }
+
+  if (data.name !== undefined) {
+    if (typeof data.name !== "string" || !data.name.trim()) {
+      throw new ValidationError("Ten san pham khong hop le!");
+    }
+    allowedData.name = data.name.trim();
+  }
+
+  if (data.slug !== undefined) {
+    if (typeof data.slug !== "string" || !data.slug.trim()) {
+      throw new ValidationError("Slug khong hop le!");
+    }
+    allowedData.slug = data.slug.trim();
+  }
+
+  if (data.description !== undefined) {
+    if (data.description === null) {
+      allowedData.description = null;
+    } else if (typeof data.description === "string") {
+      allowedData.description = data.description.trim() || null;
+    } else {
+      throw new ValidationError("Mo ta khong hop le!");
+    }
+  }
+
+  if (data.originalPrice !== undefined) {
+    if (data.originalPrice === null || data.originalPrice === "") {
+      allowedData.originalPrice = null;
+    } else {
+      const price = Number(data.originalPrice);
+      if (isNaN(price) || price < 0) {
+        throw new ValidationError("Gia goc khong hop le!");
+      }
+      allowedData.originalPrice = price;
+    }
+  }
+
+  if (data.soldCount !== undefined) {
+    const sold = Number(data.soldCount);
+    if (isNaN(sold) || sold < 0) {
+      throw new ValidationError("So luong da ban khong hop le!");
+    }
+    allowedData.soldCount = sold;
+  }
+
+  if (Object.keys(allowedData).length === 0) {
+    throw new ValidationError("Khong co truong hop le de cap nhat!");
+  }
+
+  return allowedData;
+};
+
+export const updateShopProductStatusRequestDto = (data: any): ProductStatus => {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Dữ liệu không hợp lệ!");
+  }
+
+  if (!data.status) throw new ValidationError("Không có status nào được chọn!");
+
+  // Seller only update Active/Inactive status
+  const allowedStatuses: ProductStatus[] = [
+    ProductStatus.ACTIVE,
+    ProductStatus.INACTIVE,
+  ];
+  if (data.status && !allowedStatuses.includes(data.status as ProductStatus)) {
+    throw new ValidationError(`Trạng thái cập nhật không hợp lệ!`);
+  }
+  return data.status;
+};
+
+export const reviewProductApprovalRequestDto = (
+  data: any,
+): { status: string; reason?: string } => {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Dữ liệu không hợp lệ!");
+  }
+  const allowedStatuses: ProductStatus[] = [
+    ProductStatus.REJECTED,
+    ProductStatus.ACTIVE,
+  ];
+
+  if (!data.status || !allowedStatuses.includes(data.status)) {
+    throw new ValidationError("Trạng thái không hợp lệ!");
+  }
+
+  if (data.status === ProductStatus.REJECTED && !data.reason) {
+    throw new ValidationError("Vui lòng cung cấp lý do từ chối!");
+  }
+
+  return { status: data.status, reason: data?.reason };
 };

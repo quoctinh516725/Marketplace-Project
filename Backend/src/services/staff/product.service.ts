@@ -1,18 +1,23 @@
 import { CacheKey } from "../../cache/cache.key";
+import cacheTag from "../../cache/cache.tag";
 import { CacheTTL } from "../../cache/cache.ttl";
+import { esClient } from "../../config/elasticsearch";
+import { prisma } from "../../config/prisma";
 import { ProductStatus } from "../../constants/productStatus";
 import {
   toProductDetailManageResponse,
-  toProductDetailResponse,
   toProductPublicResponse,
 } from "../../dtos/product/mapper.dto";
 import {
+  ProductBasicResponseDto,
   ProductDetailManageResponseDto,
-  ProductDetailResponseDto,
   ProductListManageResponseDto,
-  ProductListResponseDto,
 } from "../../dtos/product/product.response.dto";
-import { NotFoundError, ValidationError } from "../../error/AppError";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "../../error/AppError";
 import productRepository from "../../repositories/product.repository";
 import { InputAll } from "../../types";
 import { cacheAsync } from "../../utils/cache";
@@ -63,6 +68,62 @@ class ProductService {
         return { data };
       },
     );
+  };
+
+  reviewProductApproval = async (
+    productId: string,
+    status: string,
+  ): Promise<ProductBasicResponseDto> => {
+    const product = await productRepository.getProductById(productId);
+    if (!product) throw new NotFoundError("San pham khong ton tai!");
+
+    if (product.status !== ProductStatus.PENDING_APPROVE) {
+      throw new ConflictError("Trang thai san pham khong hop le!");
+    }
+
+    const result = await productRepository.updadeStatus(
+      prisma,
+      productId,
+      status,
+    );
+    await Promise.all([
+      cacheTag.invalidateTag("product:list"),
+      cacheTag.invalidateTag(`product:shop:${product.shop.id}`),
+    ]);
+
+    await esClient.update({
+      index: "products",
+      id: productId,
+      doc: { status },
+    });
+
+    return toProductPublicResponse(result);
+  };
+
+  updateProductStatus = async (
+    productId: string,
+    status: string,
+  ): Promise<ProductBasicResponseDto> => {
+    const product = await productRepository.getProductById(productId);
+    if (!product) throw new NotFoundError("San pham khong ton tai!");
+
+    const productUpdated = await productRepository.updadeStatus(
+      prisma,
+      productId,
+      status,
+    );
+
+    await esClient.update({
+      index: "products",
+      id: productId,
+      doc: { status },
+    });
+    await Promise.all([
+      cacheTag.invalidateTag("product:list"),
+      cacheTag.invalidateTag(`product:shop:${product.shop.id}`),
+      cacheTag.invalidateTag(`product:${product.id}`),
+    ]);
+    return toProductPublicResponse(productUpdated);
   };
 }
 export default new ProductService();

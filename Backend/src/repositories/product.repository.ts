@@ -73,6 +73,7 @@ class ProductRepository {
       }),
       ...(status && { status }),
       shopId,
+      deletedAt: null,
     };
 
     const [products, total] = await Promise.all([
@@ -96,6 +97,7 @@ class ProductRepository {
     const take = limit;
     const where: Prisma.ProductWhereInput = {
       ...(status && { status }),
+      deletedAt: null,
     };
 
     const [products, total] = await Promise.all([
@@ -121,9 +123,12 @@ class ProductRepository {
     const skip = (page - 1) * limit;
     const take = limit;
     const where: Prisma.ProductCategoryWhereInput = {
-      ...(search && { name: { contains: search } }),
-      ...(status && { status }),
       categoryId,
+      product: {
+        ...(search && { name: { contains: search } }),
+        ...(status && { status }),
+        deletedAt: null,
+      },
     };
 
     const [products, total] = await Promise.all([
@@ -141,6 +146,14 @@ class ProductRepository {
     return { data, total };
   };
 
+  getProductBasicByIds = async (
+    ids: string[],
+  ): Promise<ProductBasicResult[]> => {
+    return await prisma.product.findMany({
+      where: { id: { in: ids } },
+    });
+  };
+
   getProductById = async (
     id: string,
     status?: string,
@@ -148,10 +161,21 @@ class ProductRepository {
     const where: Prisma.ProductWhereInput = {
       ...(status && { status }),
       id,
+      deletedAt: null,
     };
     return await prisma.product.findFirst({
       where,
       select: selectProductDetail,
+    });
+  };
+
+  getProductByIdAndShop = async (
+    id: string,
+    shopId: string,
+  ): Promise<ProductBasicResult | null> => {
+    return await prisma.product.findFirst({
+      where: { id, shopId, deletedAt: null },
+      select: selectProductBasic,
     });
   };
 
@@ -162,6 +186,7 @@ class ProductRepository {
     const where: Prisma.ProductWhereInput = {
       ...(status && { status }),
       slug,
+      deletedAt: null,
     };
     return await prisma.product.findFirst({
       where,
@@ -182,6 +207,19 @@ class ProductRepository {
     data: CreateProductData,
   ): Promise<ProductBasicResult> => {
     return await client.product.create({ data, select: selectProductBasic });
+  };
+
+  updateProduct = async (
+    client: PrismaType,
+    id: string,
+    shopId: string,
+    data: Prisma.ProductUpdateManyMutationInput,
+  ): Promise<ProductBasicResult> => {
+    return await client.product.update({
+      where: { id, shopId },
+      data,
+      select: selectProductDetail,
+    });
   };
 
   createProductVariant = async (
@@ -224,6 +262,54 @@ class ProductRepository {
     data: CreateAttributeValueData,
   ) => {
     return await client.attributeValue.create({ data });
+  };
+  updateThumbnail = async (
+    client: PrismaType,
+    id: string,
+    thumbnailUrl: string,
+  ): Promise<ProductBasicResult> => {
+    return await client.product.update({
+      where: { id },
+      data: { thumbnailUrl },
+      select: selectProductBasic,
+    });
+  };
+
+  replaceProductImages = async (
+    client: PrismaType,
+    productId: string,
+    data: CreateProductImageData[],
+  ) => {
+    await client.productImage.deleteMany({
+      where: { productId },
+    });
+
+    if (data.length === 0) return;
+
+    await client.productImage.createMany({ data });
+  };
+
+  deleteProduct = async (
+    client: PrismaType,
+    id: string,
+  ): Promise<ProductBasicResult> => {
+    return await client.product.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: selectProductBasic,
+    });
+  };
+
+  updadeStatus = async (
+    client: PrismaType,
+    id: string,
+    status: string,
+  ): Promise<ProductBasicResult> => {
+    return await client.product.update({
+      where: { id },
+      data: { status },
+      select: selectProductBasic,
+    });
   };
 }
 export default new ProductRepository();

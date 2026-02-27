@@ -42,6 +42,7 @@ class ShopController {
     );
     sendSuccess(res, result, "Chỉnh sửa thông tin shop thành công!");
   });
+  
   updateShopStatus = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const statusValidated = updateShopStatusRequestDto(req.body);

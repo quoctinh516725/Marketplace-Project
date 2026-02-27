@@ -57,28 +57,46 @@ productRouter.get(
   requirePermission([PermissionCode.VIEW_PRODUCT]),
   productController.getMyProducts,
 );
-productRouter.post(
-  "/",
-  requirePermission([PermissionCode.CREATE_PRODUCT]),
-  productController.createProduct,
-);
-productRouter.post(
-  "/upload-thumbnail",
-  requirePermission([PermissionCode.CREATE_PRODUCT]),
-  upload.single("thumbnail"),
-  productController.uploadThumbnail,
-);
-productRouter.post(
-  "/upload-images",
-  requirePermission([PermissionCode.CREATE_PRODUCT]),
-  upload.array("images", 10),
-  productController.uploadImages,
-);
 productRouter.get(
   "/:id",
   requirePermission([PermissionCode.VIEW_PRODUCT]),
   productController.getMyProductById,
 );
+productRouter.post(
+  "/",
+  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  productController.createProduct,
+);
+
+productRouter.post(
+  "/:id/thumbnail",
+  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  upload.single("thumbnail"),
+  productController.uploadThumbnail,
+);
+
+productRouter.post(
+  "/:id/images",
+  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  upload.array("images", 10),
+  productController.uploadImages,
+);
+productRouter.patch(
+  "/:id",
+  requirePermission([PermissionCode.UPDATE_PRODUCT]),
+  productController.updateProduct,
+);
+productRouter.patch(
+  "/:id/status",
+  requirePermission([PermissionCode.UPDATE_PRODUCT]),
+  productController.updateProductStatus,
+);
+productRouter.delete(
+  "/:id",
+  requirePermission([PermissionCode.DELETE_PRODUCT]),
+  productController.deleteProduct,
+);
+
 router.use("/products", productRouter);
 
 export default router;
