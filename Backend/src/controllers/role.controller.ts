@@ -2,18 +2,19 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { Request, Response } from "express";
 import roleService from "../services/role/role.service";
 import { sendSuccess } from "../utils/response";
-import { UserRole } from "../constants";
 import { prisma } from "../config/prisma";
-import { CreateRole } from "../repositories/role.repository";
+import {
+  createRoleRequestDto,
+  updateRoleRequestDto,
+  validateRoleToUserRequestDto,
+} from "../dtos";
 import { ValidationError } from "../error/AppError";
 
 class RoleController {
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { code, name, description } = req.body;
-    if (!code) throw new ValidationError("Vui lòng cung cấp mã chức năng!");
-    if (!name) throw new ValidationError("Vui lòng cung cấp tên chức năng!");
+    const dataValidated = createRoleRequestDto(req.body);
 
-    const result = await roleService.create({ code, name, description });
+    const result = await roleService.create(dataValidated);
     sendSuccess(res, result, "Tạo chức năng người dùng thành công!");
   });
 
@@ -24,15 +25,20 @@ class RoleController {
     },
   );
 
+  getRoleById = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const roleId = req.params.id as string;
+      const result = await roleService.getRoleById(roleId);
+      sendSuccess(res, result, "Lấy chức năng thành công!");
+    },
+  );
+
   updateRole = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const roleId = req.params.id as string;
-      const { name, description, status } = req.body;
-      const result = await roleService.updateRole(roleId, {
-        name,
-        description,
-        status,
-      });
+      const dataValidated = updateRoleRequestDto(req.body);
+
+      const result = await roleService.updateRole(roleId, dataValidated);
       sendSuccess(res, result, "Cập nhật thông tin chức năng thành công!");
     },
   );
@@ -43,14 +49,16 @@ class RoleController {
     sendSuccess(res, result, "Xóa chức năng thành công!");
   });
 
-  asignRoleToUser = asyncHandler(
+  assignRoleToUser = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
-      const userId = req.params.id as string;
+      const userId = req.params.userId as string;
       const { roleCodes } = req.body;
-      const result = await roleService.asignRoleToUser(
+      const dataValidated = validateRoleToUserRequestDto(roleCodes);
+
+      const result = await roleService.assignRoleToUser(
         prisma,
         userId,
-        roleCodes,
+        dataValidated,
       );
       sendSuccess(res, result, "Cập nhật chức năng người dùng thành công!");
     },
@@ -58,10 +66,14 @@ class RoleController {
 
   revokeRoleFromUser = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
-      const userId = req.params.id as string;
+      const userId = req.params.userId as string;
       const { roleCodes } = req.body;
+      const dataValidated = validateRoleToUserRequestDto(roleCodes);
 
-      const result = await roleService.revokeRoleFromUser(userId, roleCodes);
+      const result = await roleService.revokeRoleFromUser(
+        userId,
+        dataValidated,
+      );
       sendSuccess(res, result, "Cập nhật chức năng người dùng thành công!");
     },
   );

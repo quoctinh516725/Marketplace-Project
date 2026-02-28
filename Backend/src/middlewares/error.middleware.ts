@@ -17,7 +17,6 @@ export function errorHandler(
     }
   } else {
     //Development
-
     sendError(res, err.message, err.statusCode, err.stack);
   }
 }

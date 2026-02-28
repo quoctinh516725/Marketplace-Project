@@ -9,6 +9,15 @@ export const CacheTTL = {
   me: {
     detail: 15 * 60,
     profile: 15 * 60,
-    list: 15 * 60,
+    list: 60,
+  },
+  shop: {
+    me: 3 * 60,
+    detail: 3 * 60,
+    list: 3 * 60,
+  },
+  product: {
+    detail: 3 * 60,
+    list: 3 * 60,
   },
 };

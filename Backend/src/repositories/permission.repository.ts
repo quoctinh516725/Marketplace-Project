@@ -1,28 +1,42 @@
-import { constants } from "node:buffer";
-import { Permission, Prisma } from "../../generated/prisma/client";
+import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
-import { InputAll, PrismaType } from "../types";
-import { PaginatedResponse } from "../types/pagination.type";
+import {
+  InputAll,
+  PermissionBasicResult,
+  PermissionListResult,
+} from "../types";
 import { PermissionStatus } from "../constants/permissionStatus";
-export type CreatePermission = {
+export type CreatePermissionData = {
   code: string;
-  description: string;
+  description?: string;
 };
-export type UpdatePermission = {
+export type UpdatePermissionData = {
   code?: string;
   description?: string;
   status?: PermissionStatus;
 };
-export type PermissionAllResponse = PaginatedResponse<Permission>;
-
+export const selectPermissionBasic = {
+  id: true,
+  code: true,
+  status: true,
+  description: true,
+};
 class PermissionRepository {
-  create = async (data: CreatePermission): Promise<Permission> => {
-    return await prisma.permission.create({ data });
+  create = async (
+    data: CreatePermissionData,
+  ): Promise<PermissionBasicResult> => {
+    return await prisma.permission.create({
+      data,
+      select: selectPermissionBasic,
+    });
   };
-  delete = async (id: string): Promise<Permission | null> => {
-    return await prisma.permission.delete({ where: { id } });
+  delete = async (id: string): Promise<PermissionBasicResult> => {
+    return await prisma.permission.delete({
+      where: { id },
+      select: selectPermissionBasic,
+    });
   };
-  getAll = async (input: InputAll): Promise<PermissionAllResponse> => {
+  getAll = async (input: InputAll): Promise<PermissionListResult> => {
     const { page, limit, status, search } = input;
 
     const skip = (page - 1) * limit;
@@ -39,6 +53,7 @@ class PermissionRepository {
     const [permissions, total] = await Promise.all([
       prisma.permission.findMany({
         where,
+        select: selectPermissionBasic,
         orderBy: { code: "asc" },
         skip,
         take,
@@ -48,32 +63,38 @@ class PermissionRepository {
 
     return {
       data: permissions,
-      pagination: {
-        page,
-        limit,
-        total,
-      },
+      total,
     };
   };
-  findById = async (id: string): Promise<Permission | null> => {
-    return await prisma.permission.findUnique({ where: { id } });
+  findById = async (id: string): Promise<PermissionBasicResult | null> => {
+    return await prisma.permission.findUnique({
+      where: { id },
+      select: selectPermissionBasic,
+    });
   };
-  findByCode = async (code: string): Promise<Permission | null> => {
-    return await prisma.permission.findUnique({ where: { code } });
+  findByCode = async (code: string): Promise<PermissionBasicResult | null> => {
+    return await prisma.permission.findUnique({
+      where: { code },
+      select: selectPermissionBasic,
+    });
   };
   getPermissionsByUser = async (userId: string): Promise<string[]> => {
     const result = await prisma.userPermission.findMany({
       where: { userId, permission: { status: PermissionStatus.ACTIVE } },
-      include: { permission: { select: { code: true } } },
+      select: { permission: { select: { code: true } } },
     });
 
     return result.map((r) => r.permission.code);
   };
   update = async (
     id: string,
-    data: UpdatePermission,
-  ): Promise<Permission | null> => {
-    return prisma.permission.update({ where: { id }, data });
+    data: UpdatePermissionData,
+  ): Promise<PermissionBasicResult> => {
+    return prisma.permission.update({
+      where: { id },
+      select: selectPermissionBasic,
+      data,
+    });
   };
 
   assignPermissionToRole = async (
@@ -81,19 +102,10 @@ class PermissionRepository {
     permissionIds: string[],
   ): Promise<void> => {
     const data = permissionIds.map((p) => ({ roleId, permissionId: p }));
-    await prisma.rolePermission.deleteMany({ where: { roleId } });
-    await prisma.rolePermission.createMany({ data });
-  };
-
-  validatePermission = async (
-    permissionCodes: string[],
-  ): Promise<{ id: string; code: string }[] | null> => {
-    const uniquePermission = [...new Set(permissionCodes)];
-    const permissions = await prisma.permission.findMany({
-      where: { code: { in: uniquePermission } },
-      select: { id: true, code: true },
+    await prisma.$transaction(async (tx) => {
+      await tx.rolePermission.deleteMany({ where: { roleId } });
+      await tx.rolePermission.createMany({ data });
     });
-    return permissions.length === uniquePermission.length ? permissions : null;
   };
 
   removePermissionFromRole = async (
@@ -125,10 +137,12 @@ class PermissionRepository {
     permissionIds: string[],
   ): Promise<void> => {
     const data = permissionIds.map((p) => ({ userId, permissionId: p }));
-    await prisma.userPermission.deleteMany({ where: { userId } });
-    await prisma.userPermission.createMany({ data });
+    await prisma.$transaction(async (tx) => {
+      await tx.userPermission.deleteMany({ where: { userId } });
+      await tx.userPermission.createMany({ data });
+    });
   };
-  
+
   removePermissionFromUser = async (
     userId: string,
     permissionIds: string[],

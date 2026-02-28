@@ -26,33 +26,18 @@ import userService from "../user/user.service";
 import roleService from "../role/role.service";
 import roleRepository from "../../repositories/role.repository";
 import permissionRepository from "../../repositories/permission.repository";
-
-export interface LoginData {
-  emailOrUsername: string;
-  password: string;
-}
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  username: string;
-}
-
-export interface AuthResponse {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    fullName: string | null;
-    avatarUrl: string | null;
-    status: string;
-  };
-  accessToken: string;
-  refreshToken: string;
-}
+import shopRepository from "../../repositories/shop.repository";
+import {
+  LoginRequestDto,
+  LoginResponseDto,
+  RegisterRequestDto,
+  RegisterResponseDto,
+  RefreshTokenResponseDto,
+  UserInfoDto,
+} from "../../dtos";
 
 class AuthService {
-  login = async (data: LoginData): Promise<AuthResponse> => {
+  login = async (data: LoginRequestDto): Promise<LoginResponseDto> => {
     const { emailOrUsername, password } = data;
     // Check exist
 
@@ -83,16 +68,21 @@ class AuthService {
     const userPermission = await permissionRepository.getPermissionsByUser(
       user.id,
     );
-    if (rolePermission.length === 0) {
+
+    const permissions = [...new Set([...rolePermission, ...userPermission])];
+    if (permissions.length === 0) {
       throw new ForbiddenError("Tài khoản chưa được cấp quyền!");
     }
 
-    const permissions = [...new Set([...rolePermission, ...userPermission])];
+    //Get shop
+    const shop = await shopRepository.findShopBySeller(user.id);
+
     //Get accessToken
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
       username: user.username,
+      shopId: shop?.id,
     });
 
     //Get ttl for Add Cache
@@ -105,6 +95,7 @@ class AuthService {
         status: user.status as UserStatus,
         roles: roleCodes,
         permissions,
+        shopId: shop?.id,
       },
       ttl,
     );
@@ -114,9 +105,12 @@ class AuthService {
 
     //Get expiredAt for Create refreshToken
     const decoded = jwt.decode(refreshToken) as JwtPayload;
-    const expiredAt = new Date(decoded.exp! * 1000);
+    if (!decoded || !decoded.exp) {
+      throw new ValidationError("Không thể decode refresh token!");
+    }
+    const expiredAt = new Date(decoded.exp * 1000);
 
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Update lastLoginAt
       await userRepository.update(tx, user.id, { lastLoginAt: new Date() });
 
@@ -129,23 +123,22 @@ class AuthService {
         token: refreshToken,
         expiredAt,
       });
-
-      return {
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          avatarUrl: user.avatarUrl,
-          status: user.status,
-        },
-        accessToken,
-        refreshToken,
-      };
     });
-    return result;
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      },
+      accessToken,
+      refreshToken,
+    };
   };
-  register = async (data: RegisterData): Promise<AuthResponse> => {
+  register = async (data: RegisterRequestDto): Promise<RegisterResponseDto> => {
     const { email, username, password } = data;
 
     //Check exist email
@@ -186,12 +179,16 @@ class AuthService {
       });
 
       //Gán role
-      await roleService.asignRoleToUser(tx, newUser.id, [roleCode], false);
+      await roleService.assignRoleToUser(tx, newUser.id, [roleCode], false);
 
       //Sinh Refresh Token
       const refreshToken = generateRefreshToken(newUser.id);
       const decoded = jwt.decode(refreshToken) as JwtPayload;
-      const expiredAt = new Date(decoded.exp! * 1000);
+      if (!decoded || !decoded.exp) {
+        throw new ValidationError("Không thể decode refresh token!");
+      }
+      const expiredAt = new Date(decoded.exp * 1000);
+
       //Lưu Refresh Token vào DB
       await refreshTokenRepository.create(tx, {
         userId: newUser.id,
@@ -209,36 +206,39 @@ class AuthService {
       userId: result.newUser.id,
       email,
       username,
+      shopId: undefined,
     });
 
     //Cache thông tin user
     const ttl = getTokenRemainingTime(accessToken);
-    const { password: hiddenPassword, ...user } = result.newUser;
+    const user = result.newUser;
+
     await addAuthUserCache(
       {
         id: user.id,
         status: user.status as UserStatus,
         roles: [roleCode],
         permissions,
+        shopId: undefined,
       },
       ttl,
     );
     return {
       user: {
-        id: result.newUser.id,
-        username: result.newUser.username,
-        email: result.newUser.email,
-        fullName: result.newUser.fullName,
-        avatarUrl: result.newUser.avatarUrl,
-        status: result.newUser.status,
-      },
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      } as UserInfoDto,
       accessToken,
       refreshToken: result.refreshToken,
     };
   };
   refreshToken = async (
     refreshToken: string,
-  ): Promise<{ accessToken: string }> => {
+  ): Promise<RefreshTokenResponseDto> => {
     //Check revoked
     const refreshTokenFind =
       await refreshTokenRepository.findByToken(refreshToken);
@@ -268,24 +268,28 @@ class AuthService {
       throw new NotFoundError("Không tồn tại chức năng của người dùng!");
 
     //Permission default with role
-    const permissions =
+    const rolePermission =
       await permissionRepository.getPermissionsByRole(roleIds);
 
     //Permission own User
     const userPermission = await permissionRepository.getPermissionsByUser(
       user.id,
     );
+
+    const permissions = [...new Set([...rolePermission, ...userPermission])];
     if (permissions.length === 0) {
       throw new ForbiddenError("Tài khoản chưa được cấp quyền!");
     }
 
-    //NOTE: Bổ sung get shopId
+    //Get shop
+    const shop = await shopRepository.findShopBySeller(user.id);
 
-    //Generate accessToken
+    //Get accessToken
     const accessToken = generateAccessToken({
       userId: user.id,
-      username: user.username,
       email: user.email,
+      username: user.username,
+      shopId: shop?.id,
     });
 
     const ttl = getTokenRemainingTime(accessToken);
@@ -297,6 +301,7 @@ class AuthService {
         status: user.status as UserStatus,
         roles: roleCodes,
         permissions,
+        shopId: shop?.id,
       },
       ttl,
     );
@@ -316,7 +321,6 @@ class AuthService {
     }
 
     // Delete UserCache
-
     await deleteAuthUserCache(userId);
 
     // Revoke RefreshToken

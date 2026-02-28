@@ -17,6 +17,7 @@ async function shutDown(): Promise<void> {
   process.exit(0);
 }
 
+
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

@@ -27,6 +27,8 @@ model User {
   userRoles       UserRole[]
   refreshTokens   RefreshToken[]
   userPermissions UserPermission[]
+  shop            Shop?
+  Cart            Cart[]
 
   @@map("users")
 }
@@ -125,4 +127,222 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+model Shop {
+  id            String  @id @default(uuid())
+  sellerId      String  @unique @map("seller_id")
+  name          String
+  address       String
+  phone         String
+  slug          String  @unique
+  description   String?
+  logoUrl       String? @map("logo_url")
+  backgroundUrl String? @map("background_url")
+
+  totalProducts  Int      @default(0) @map("total_products")
+  totalOrders    Int      @default(0) @map("total_orders")
+  totalReviews   Int      @default(0) @map("total_reviews")
+  commissionRate Decimal? @map("commission_rate") @db.Decimal(5, 4)
+
+  status    String   @default("PENDING_APPROVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  products Product[]
+
+  @@map("shops")
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?  @map("logo_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("brands")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  parentId    String?  @map("parent_id")
+  name        String
+  slug        String   @unique
+  description String?
+  level       Int      @default(0)
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent             Category?           @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children           Category[]          @relation("CategoryChildren")
+  productCategories  ProductCategory[]
+  categoryAttributes CategoryAttribute[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String
+
+  productTags ProductTag[]
+
+  @@map("tags")
+}
+
+model ProductTag {
+  id        String @id @default(uuid())
+  tagId     String @map("tag_id")
+  productId String @map("product_id")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model Product {
+  id      String  @id @default(uuid())
+  shopId  String  @map("shop_id")
+  brandId String? @map("brand_id")
+
+  name          String
+  code          String   @unique
+  slug          String   @unique
+  description   String?
+  thumbnailUrl  String   @map("thumbnail_url")
+  originalPrice Decimal? @map("original_price")
+  soldCount     Int      @default(0) @map("sold_count")
+  rating        Float?   @default(0)
+  status        String   @default("PENDING_APPROVE")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("delete_at")
+
+  shop  Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  productCategories ProductCategory[]
+
+  images      ProductImage[]
+  variants    ProductVariant[]
+  productTags ProductTag[]
+  cartItem    CartItem[]
+
+  @@map("products")
+}
+
+model ProductCategory {
+  id         String @id @default(uuid())
+  productId  String @map("product_id")
+  categoryId String @map("category_id")
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  imageUrl  String   @map("image_url")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id          String   @id @default(uuid())
+  productId   String   @map("product_id")
+  sku         String   @unique
+  variantName String?  @map("variant_name")
+  imageUrl    String?  @map("image_url")
+  price       Decimal
+  stock       Int
+  weight      Float?
+  status      String   @default("PENDING_APPROVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productAttributes ProductAttribute[]
+  cartItem          CartItem[]
+
+  @@map("product_variants")
+}
+
+model Attribute {
+  id          String  @id @default(uuid())
+  name        String  @map("attribute_name")
+  code        String  @unique
+  description String?
+
+  categoryAttributes CategoryAttribute[]
+  values             AttributeValue[]
+  productAttributes  ProductAttribute[]
+
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id          String @id @default(uuid())
+  attributeId String @map("attribute_id")
+  value       String
+
+  productAttributes ProductAttribute[]
+  attribute         Attribute          @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@map("attribute_values")
+}
+
+model ProductAttribute {
+  id               String  @id @default(uuid())
+  productVariantId String  @map("product_variant_id")
+  attributeId      String  @map("attribute_id")
+  attributeValueId String? @map("attribute_value_id")
+
+  productVariant ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  attribute      Attribute       @relation(fields: [attributeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attributeValue AttributeValue? @relation(fields: [attributeValueId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("product_attributes")
+}
+
+model CategoryAttribute {
+  id          String @id @default(uuid())
+  categoryId  String @map("category_id")
+  attributeId String @map("attribute_id")
+
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@map("CategoryAttribute")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String  @map("cart_id")
+  productId String  @map("product_id")
+  variantId String? @map("variant_id")
+  quantity  Int
+  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
 }
