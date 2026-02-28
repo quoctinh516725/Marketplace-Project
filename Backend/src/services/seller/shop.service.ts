@@ -1,23 +1,23 @@
-import { Shop } from "../../../../generated/prisma/client";
-import { CacheKey } from "../../../cache/cache.key";
-import cacheTag from "../../../cache/cache.tag";
-import { CacheTTL } from "../../../cache/cache.ttl";
-import { prisma } from "../../../config/prisma";
-import { ShopStatus } from "../../../constants/shopStatus";
+import { Shop } from "../../../generated/prisma/client";
+import { CacheKey } from "../../cache/cache.key";
+import cacheTag from "../../cache/cache.tag";
+import { CacheTTL } from "../../cache/cache.ttl";
+import { prisma } from "../../config/prisma";
+import { ShopStatus } from "../../constants/shopStatus";
 import {
   CreateShopRequestDto,
   ShopDetailResponseDto,
   UpdateShopRequestDto,
-} from "../../../dtos/shop";
+} from "../../dtos/shop";
+import { toShopDetailResponse } from "../../dtos/shop/mapper.dto";
 import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
-  ValidationError,
-} from "../../../error/AppError";
-import shopRepository from "../../../repositories/shop.repository";
-import { cacheAsync } from "../../../utils/cache";
-import { deleteAuthUserCache } from "../../auth/auth.cache";
+} from "../../error/AppError";
+import shopRepository from "../../repositories/shop.repository";
+import { cacheAsync } from "../../utils/cache";
+import { deleteAuthUserCache } from "../auth/auth.cache";
 
 class ShopService {
   private verifyShop = async (sellerId: string, shopId: string) => {
@@ -41,7 +41,8 @@ class ShopService {
       async () => {
         const shop = await shopRepository.findShopBySeller(sellerId);
         if (!shop) throw new NotFoundError("Bạn chưa có cửa hàng!");
-        return { data: shop, tags: [`shop:${shop.id}`] };
+        const data = toShopDetailResponse(shop);
+        return { data, tags: [`shop:${shop.id}`] };
       },
     );
   };
@@ -62,7 +63,7 @@ class ShopService {
       await cacheTag.invalidateTag("shop:list"),
     ]);
 
-    return shop;
+    return toShopDetailResponse(shop);
   };
 
   updateShop = async (
@@ -79,29 +80,31 @@ class ShopService {
     const shop = await this.verifyShop(sellerId, id);
 
     // Update shop
-    const result = await shopRepository.update(prisma, shop.id, data);
+    const shopUpdated = await shopRepository.update(prisma, shop.id, data);
 
     //Invalidate Cache
     await cacheTag.invalidateTag(`shop:${shop.id}`);
-    return result;
+    return toShopDetailResponse(shopUpdated);
   };
 
   updateShopStatus = async (
     sellerId: string,
     id: string,
     status: ShopStatus,
-  ) => {
+  ): Promise<ShopDetailResponseDto> => {
     const shop = await shopRepository.findShopById(id);
     if (!shop) throw new NotFoundError("Shop không tồn tại!");
 
     if (shop.sellerId !== sellerId)
       throw new ForbiddenError("Bạn không thể chỉnh sửa shop này!");
 
-    const result = await shopRepository.update(prisma, shop.id, { status });
+    const shopUpdated = await shopRepository.update(prisma, shop.id, {
+      status,
+    });
 
     //Invalidate Cache
     await cacheTag.invalidateTag(`shop:${shop.id}`);
-    return result;
+    return toShopDetailResponse(shopUpdated);
   };
 
   updateLogo = async (
@@ -112,11 +115,13 @@ class ShopService {
     const shop = await this.verifyShop(sellerId, id);
 
     // Update logo
-    const result = await shopRepository.update(prisma, shop.id, { logoUrl });
+    const shopUpdated = await shopRepository.update(prisma, shop.id, {
+      logoUrl,
+    });
 
     //Invalidate Cache
     await cacheTag.invalidateTag(`shop:${shop.id}`);
-    return result;
+    return toShopDetailResponse(shopUpdated);
   };
   updateBackground = async (
     sellerId: string,
@@ -126,13 +131,13 @@ class ShopService {
     const shop = await this.verifyShop(sellerId, id);
 
     // Update background
-    const result = await shopRepository.update(prisma, shop.id, {
+    const shopUpdated = await shopRepository.update(prisma, shop.id, {
       backgroundUrl,
     });
 
     //Invalidate Cache
     await cacheTag.invalidateTag(`shop:${shop.id}`);
-    return result;
+    return toShopDetailResponse(shopUpdated);
   };
 }
 

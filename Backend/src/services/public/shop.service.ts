@@ -1,13 +1,12 @@
-import { Shop } from "../../../generated/prisma/client";
 import { CacheKey } from "../../cache/cache.key";
 import { CacheTTL } from "../../cache/cache.ttl";
-import { ShopDetailResponseDto } from "../../dtos/shop";
+import { ShopPublicResponseDto } from "../../dtos/shop";
 import { NotFoundError } from "../../error/AppError";
 import shopRepository from "../../repositories/shop.repository";
 import { cacheAsync } from "../../utils/cache";
 
 class ShopService {
-  getShopBySlug = async (slug: string): Promise<ShopDetailResponseDto> => {
+  getShopBySlug = async (slug: string): Promise<ShopPublicResponseDto> => {
     return await cacheAsync(
       CacheKey.shop.detail(slug),
       CacheTTL.shop.detail,

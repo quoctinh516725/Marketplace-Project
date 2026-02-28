@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import shopService from "../../services/shop/seller/shop.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { sendSuccess } from "../../utils/response";
 import { NotFoundError, ValidationError } from "../../error/AppError";
@@ -10,6 +9,7 @@ import {
   updateShopRequestDto,
   updateShopStatusRequestDto,
 } from "../../dtos/shop";
+import shopService from "../../services/seller/shop.service";
 
 class ShopController {
   getMyShop = asyncHandler(
@@ -20,23 +20,7 @@ class ShopController {
       sendSuccess(res, result, "Lấy thông tin cửa hàng thành công!");
     },
   );
-  getMyProduct = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
-      const { page, limit } = req.pagination!;
 
-      const shopId = req.user?.shopId;
-      if (!shopId) throw new NotFoundError("Bạn chưa có cửa hàng!");
-
-      const data = await productService.getShopProducts(shopId, {
-        page,
-        limit,
-        search: req.query.search as string,
-        status: req.query.status as string,
-      });
-
-      sendSuccess(res, data, "Lấy sản phẩm của cửa hàng thành công!");
-    },
-  );
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const data = createShopRequestDto(req.body);
 
@@ -58,6 +42,7 @@ class ShopController {
     );
     sendSuccess(res, result, "Chỉnh sửa thông tin shop thành công!");
   });
+  
   updateShopStatus = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const statusValidated = updateShopStatusRequestDto(req.body);

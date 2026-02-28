@@ -5,13 +5,17 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "create": "tsx src/createProductSearch.ts",
+    "seed:products": "tsx prisma/seed.products.ts",
+    "sync:products:es": "tsx src/syncProductsToEs.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@elastic/elasticsearch": "^8.19.1",
     "@prisma/adapter-mssql": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "bcrypt": "^6.0.0",

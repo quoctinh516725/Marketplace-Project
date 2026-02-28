@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma";
 import { RoleStatus } from "../constants/roleStatus";
-import { PrismaType, RoleBasicResult, RoleDetailResult } from "../types";
+import { PrismaType, RoleBasicResult, roleBasicSelect, RoleDetailResult, roleDetailSelect } from "../types";
 
 export interface CreateRole {
   code: string;
@@ -13,23 +13,6 @@ export interface UpdateRole {
   description?: string;
   status?: RoleStatus;
 }
-
-export const roleBasicSelect = {
-  id: true,
-  code: true,
-  name: true,
-  status: true,
-};
-
-export const roleDetailSelect = {
-  ...roleBasicSelect,
-  description: true,
-  rolePermissions: {
-    select: {
-      permission: { select: { code: true } },
-    },
-  },
-};
 
 class RoleRepository {
   create = async (data: CreateRole): Promise<RoleBasicResult> => {

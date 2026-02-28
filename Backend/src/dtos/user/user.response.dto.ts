@@ -1,3 +1,4 @@
+import { UserStatus } from "../../constants";
 import { PaginatedResponseDto } from "../common";
 
 export type UserBasicResponseDto = {
@@ -9,7 +10,7 @@ export type UserBasicResponseDto = {
   gender: string | null;
   dateOfBirth: string | null;
   avatarUrl: string | null;
-  status: string;
+  status: UserStatus;
   lastLoginAt: Date | null;
   createdAt: Date;
 };

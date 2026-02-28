@@ -7,6 +7,9 @@ import {
   UserDetailResult,
   UserBasicResult,
   UserProfileResult,
+  selectUserBasic,
+  selectUserProfile,
+  selectUserDetail,
 } from "../types/user.type";
 
 export interface CreateUserData {
@@ -24,74 +27,6 @@ export interface UpdateUserData {
   lastLoginAt?: Date;
   deletedAt?: Date;
 }
-
-const selectUserDetail = {
-  id: true,
-  email: true,
-  username: true,
-  fullName: true,
-  phone: true,
-  avatarUrl: true,
-  gender: true,
-  dateOfBirth: true,
-  status: true,
-  lastLoginAt: true,
-  createdAt: true,
-  deletedAt: true,
-
-  userRoles: {
-    select: {
-      role: {
-        select: {
-          id: true,
-          code: true,
-        },
-      },
-    },
-  },
-
-  userPermissions: {
-    select: {
-      permission: {
-        select: {
-          id: true,
-          code: true,
-        },
-      },
-    },
-  },
-};
-
-const selectUserBasic = {
-  id: true,
-  email: true,
-  username: true,
-  fullName: true,
-  phone: true,
-  avatarUrl: true,
-  gender: true,
-  dateOfBirth: true,
-  status: true,
-  lastLoginAt: true,
-  createdAt: true,
-};
-
-const selectUserProfile = {
-  id: true,
-  username: true,
-  fullName: true,
-  avatarUrl: true,
-  userRoles: {
-    select: {
-      role: {
-        select: {
-          id: true,
-          code: true,
-        },
-      },
-    },
-  },
-};
 
 class UserRepository {
   existEmail = async (email: string): Promise<boolean> => {

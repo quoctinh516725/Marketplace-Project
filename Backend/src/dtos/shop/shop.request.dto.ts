@@ -1,6 +1,6 @@
 import { ShopStatus } from "../../constants/shopStatus";
 import { ValidationError } from "../../error/AppError";
-import { generateSlug } from "../../utils/slug";
+import { generateSlug } from "../../utils/generate";
 
 export type CreateShopRequestDto = {
   name: string;

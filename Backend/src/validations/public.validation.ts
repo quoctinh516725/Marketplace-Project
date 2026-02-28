@@ -8,6 +8,13 @@ declare global {
         page: number;
         limit: number;
       };
+      searchQuery?: {
+        q?: string;
+        categoryIds?: string[];
+        minPrice?: number;
+        maxPrice?: number;
+        sortBy?: string;
+      };
     }
   }
 }
@@ -37,6 +44,69 @@ export const validatePagination = (
   }
 
   req.pagination = { page, limit };
+
+  next();
+};
+
+export const validateSearchProducts = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { q, categoryIds, minPrice, maxPrice, sortBy } = req.query;
+
+  const DEFAULT_MIN_PRICE = 0;
+  const DEFAULT_MAX_PRICE = 999_999_999;
+
+  const ALLOWED_SORT = [
+    "relevance",
+    "price_asc",
+    "price_desc",
+    "created_at_asc",
+    "created_at_desc",
+    "rating_asc",
+    "rating_desc",
+  ];
+  const parsedSearch =
+    typeof q === "string" && q.trim() !== ""
+      ? q.trim()
+      : undefined;
+
+  let parsedCategoryIds: string[] | undefined;
+
+  if (categoryIds !== undefined) {
+    if (!Array.isArray(categoryIds)) {
+      throw new ValidationError("Danh mục phải được truyền dạng danh sách!");
+    }
+    parsedCategoryIds = categoryIds as string[];
+  }
+
+  const parsedMinPrice =
+    minPrice !== undefined ? Number(minPrice) : DEFAULT_MIN_PRICE;
+
+  const parsedMaxPrice =
+    maxPrice !== undefined ? Number(maxPrice) : DEFAULT_MAX_PRICE;
+
+  if (isNaN(parsedMinPrice) || isNaN(parsedMaxPrice)) {
+    throw new ValidationError("minPrice hoặc maxPrice không hợp lệ!");
+  }
+
+  if (parsedMinPrice > parsedMaxPrice) {
+    throw new ValidationError("minPrice không được lớn hơn maxPrice!");
+  }
+
+  const parsedSortBy =
+    typeof sortBy === "string" && ALLOWED_SORT.includes(sortBy)
+      ? sortBy
+      : undefined;
+
+  req.searchQuery = {
+    q: parsedSearch,
+    categoryIds: parsedCategoryIds,
+    minPrice: parsedMinPrice,
+    maxPrice: parsedMaxPrice,
+    sortBy: parsedSortBy,
+  };
 
   next();
 };

@@ -1,4 +1,9 @@
-import { UserBasicResult, UserDetailResult, UserProfileResult } from "../../types";
+import { UserStatus } from "../../constants";
+import {
+  UserBasicResult,
+  UserDetailResult,
+  UserProfileResult,
+} from "../../types";
 import {
   UserBasicResponseDto,
   UserDetailResponseDto,
@@ -19,7 +24,7 @@ export const toUserDetailResponse = (
       ? data.dateOfBirth.toLocaleDateString("vi-VN")
       : null,
     avatarUrl: data.avatarUrl,
-    status: data.status,
+    status: data.status as UserStatus,
     lastLoginAt: data.lastLoginAt,
     createdAt: data.createdAt,
     roles: data.userRoles.map((ur) => ur.role.code),
@@ -40,7 +45,7 @@ export const toUserBasicResponse = (
       ? data.dateOfBirth.toLocaleDateString("vi-VN")
       : null,
     avatarUrl: data.avatarUrl,
-    status: data.status,
+    status: data.status as UserStatus,
     lastLoginAt: data.lastLoginAt,
     createdAt: data.createdAt,
   };
@@ -54,6 +59,5 @@ export const toUserProfileResponse = (
     username: data.username,
     fullName: data.fullName,
     avatarUrl: data.avatarUrl,
-
   };
 };
