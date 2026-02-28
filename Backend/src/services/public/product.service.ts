@@ -30,6 +30,7 @@ export interface SearchProductsQuery {
   limit: number;
   sortBy?: string;
 }
+
 interface ProductDocument {
   name: string;
   description: string;
@@ -146,7 +147,7 @@ class ProductService {
       },
     );
   };
-  
+
   getProductBySlug = async (
     slug: string,
   ): Promise<ProductDetailResponseDto> => {

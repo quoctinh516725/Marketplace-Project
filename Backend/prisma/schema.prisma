@@ -28,6 +28,7 @@ model User {
   refreshTokens   RefreshToken[]
   userPermissions UserPermission[]
   shop            Shop?
+  Cart            Cart[]
 
   @@map("users")
 }
@@ -153,6 +154,7 @@ model Shop {
 
   @@map("shops")
 }
+
 model Brand {
   id          String   @id @default(uuid())
   name        String
@@ -206,12 +208,12 @@ model ProductTag {
 }
 
 model Product {
-  id         String  @id @default(uuid())
-  shopId     String  @map("shop_id")
-  brandId    String? @map("brand_id")
+  id      String  @id @default(uuid())
+  shopId  String  @map("shop_id")
+  brandId String? @map("brand_id")
 
   name          String
-  code String @unique
+  code          String   @unique
   slug          String   @unique
   description   String?
   thumbnailUrl  String   @map("thumbnail_url")
@@ -232,6 +234,7 @@ model Product {
   images      ProductImage[]
   variants    ProductVariant[]
   productTags ProductTag[]
+  cartItem    CartItem[]
 
   @@map("products")
 }
@@ -272,6 +275,7 @@ model ProductVariant {
 
   product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   productAttributes ProductAttribute[]
+  cartItem          CartItem[]
 
   @@map("product_variants")
 }
@@ -322,4 +326,23 @@ model CategoryAttribute {
   attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
   @@map("CategoryAttribute")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String  @map("cart_id")
+  productId String  @map("product_id")
+  variantId String? @map("variant_id")
+  quantity  Int
+  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
 }

@@ -3,6 +3,5 @@ export * from "./user.type";
 export * from "./input.type";
 export * from "./permission.type";
 export * from "./role.type";
-export * from "./shop.type"
-
-
+export * from "./shop.type";
+export * from "./category.type";

@@ -79,8 +79,8 @@ export const createProductRequestDto = (
   if (!Array.isArray(data.tags)) {
     errors.push("Tags không hợp lệ!");
   }
-  if (!Array.isArray(data.variants) || data.variants.length === 0) {
-    errors.push("Sản phẩm phải có ít nhất một biến thể!");
+  if (!Array.isArray(data.variants)) {
+    errors.push("Vui lòng cung cấp biến thể!");
   }
   if (errors.length > 0) {
     throw new ValidationError(errors.join(", "));
