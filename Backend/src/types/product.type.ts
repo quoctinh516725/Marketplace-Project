@@ -90,6 +90,27 @@ export const selectProductDetail = {
   },
 } satisfies Prisma.ProductSelect;
 
+export const selectProductVariant = {
+  id: true,
+  imageUrl: true,
+  price: true,
+  stock: true,
+  variantName: true,
+  product: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      thumbnailUrl: true,
+      deletedAt: true,
+    },
+  },
+} satisfies Prisma.ProductVariantSelect;
+
+export type ProductVariantResult = Prisma.ProductVariantGetPayload<{
+  select: typeof selectProductVariant;
+}>;
+
 export type ProductBasicResult = Prisma.ProductGetPayload<{
   select: typeof selectProductBasic;
 }>;

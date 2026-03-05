@@ -3,6 +3,9 @@ import { Prisma } from "../../generated/prisma/client";
 export const selectCartDetail = {
   id: true,
   cartItems: {
+    orderBy: {
+      createdAt: "asc",
+    },
     select: {
       id: true,
       quantity: true,
@@ -23,6 +26,7 @@ export const selectCartDetail = {
           variantName: true,
         },
       },
+      createdAt: true,
     },
   },
 } satisfies Prisma.CartSelect;

@@ -71,6 +71,7 @@ class ProductService {
       "product:list",
       `product:shop:${shopId}`,
       `product:${productId}`,
+      `product:cart:${productId}`,
     ];
 
     await Promise.all(tags.map((tag) => cacheTag.invalidateTag(tag)));
@@ -416,11 +417,7 @@ class ProductService {
       throw new ConflictError("Cap nhat san pham that bai, vui long thu lai!");
     }
 
-    await Promise.all([
-      cacheTag.invalidateTag("product:list"),
-      cacheTag.invalidateTag(`product:shop:${shopId}`),
-      cacheTag.invalidateTag(`product:${id}`),
-    ]);
+    await this.invalidateProductCache(shopId, product.id);
 
     // Update doc
     const doc: any = {};

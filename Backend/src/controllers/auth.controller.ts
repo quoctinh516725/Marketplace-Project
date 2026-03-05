@@ -6,17 +6,16 @@ import {
   REFRESH_TOKEN_COOKIE_NAME,
   setRefreshTokenCookie,
 } from "../utils/cookie";
-import {
-  registerRequestDto,
-  loginRequestDto,
-} from "../dtos";
+import { registerRequestDto, loginRequestDto } from "../dtos";
 
 class AuthController {
   login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const dataValidated = loginRequestDto(req.body);
+    const guestId = req.cookies.guestId;
 
-    const result = await authService.login(dataValidated);
+    const result = await authService.login(dataValidated, guestId);
     const { refreshToken, ...data } = result;
+    res.clearCookie(guestId);
     setRefreshTokenCookie(res, refreshToken);
     sendSuccess(res, data, "Đăng nhập thành công!");
   });
@@ -24,9 +23,13 @@ class AuthController {
   register = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const dataValidated = registerRequestDto(req.body);
-      const result = await authService.register(dataValidated);
+      const guestId = req.cookies.guestId;
+
+      const result = await authService.register(dataValidated, guestId);
 
       const { refreshToken, ...data } = result;
+      res.clearCookie(guestId);
+
       setRefreshTokenCookie(res, refreshToken);
       sendSuccess(res, data, "Đăng ký thành công!");
     },

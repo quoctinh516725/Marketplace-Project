@@ -281,10 +281,12 @@ model ProductVariant {
 }
 
 model Attribute {
-  id          String  @id @default(uuid())
-  name        String  @map("attribute_name")
-  code        String  @unique
+  id          String   @id @default(uuid())
+  name        String   @map("attribute_name")
+  code        String   @unique
   description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   categoryAttributes CategoryAttribute[]
   values             AttributeValue[]
@@ -294,9 +296,11 @@ model Attribute {
 }
 
 model AttributeValue {
-  id          String @id @default(uuid())
-  attributeId String @map("attribute_id")
+  id          String   @id @default(uuid())
+  attributeId String   @map("attribute_id")
   value       String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   productAttributes ProductAttribute[]
   attribute         Attribute          @relation(fields: [attributeId], references: [id], onDelete: Cascade)
@@ -305,10 +309,12 @@ model AttributeValue {
 }
 
 model ProductAttribute {
-  id               String  @id @default(uuid())
-  productVariantId String  @map("product_variant_id")
-  attributeId      String  @map("attribute_id")
-  attributeValueId String? @map("attribute_value_id")
+  id               String   @id @default(uuid())
+  productVariantId String   @map("product_variant_id")
+  attributeId      String   @map("attribute_id")
+  attributeValueId String?  @map("attribute_value_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   productVariant ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   attribute      Attribute       @relation(fields: [attributeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -318,9 +324,11 @@ model ProductAttribute {
 }
 
 model CategoryAttribute {
-  id          String @id @default(uuid())
-  categoryId  String @map("category_id")
-  attributeId String @map("attribute_id")
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  attributeId String   @map("attribute_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
@@ -329,20 +337,30 @@ model CategoryAttribute {
 }
 
 model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @map("user_id")
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   cartItems CartItem[]
+
+  @@map("cart")
 }
 
 model CartItem {
-  id        String  @id @default(uuid())
-  cartId    String  @map("cart_id")
-  productId String  @map("product_id")
-  variantId String? @map("variant_id")
+  id        String   @id @default(uuid())
+  cartId    String   @map("cart_id")
+  productId String   @map("product_id")
+  variantId String?  @map("variant_id")
   quantity  Int
-  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+  @@map("cart_items")
 }

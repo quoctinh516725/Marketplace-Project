@@ -52,7 +52,10 @@ export const CacheKey = {
       shopProducts: (input: InputAll, shopId: string) =>
         listCache(input, "product:public", { type: "shop", id: shopId }),
       categoryProducts: (input: InputAll, categoryId: string) =>
-        listCache(input, "product:public", { type: "category", id: categoryId }),
+        listCache(input, "product:public", {
+          type: "category",
+          id: categoryId,
+        }),
     },
 
     seller: {

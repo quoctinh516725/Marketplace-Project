@@ -35,9 +35,13 @@ import {
   RefreshTokenResponseDto,
   UserInfoDto,
 } from "../../dtos";
+import cartService from "../cart/cart.service";
 
 class AuthService {
-  login = async (data: LoginRequestDto): Promise<LoginResponseDto> => {
+  login = async (
+    data: LoginRequestDto,
+    guestId?: string,
+  ): Promise<LoginResponseDto> => {
     const { emailOrUsername, password } = data;
     // Check exist
 
@@ -125,6 +129,11 @@ class AuthService {
       });
     });
 
+    // Sync Cart
+    if (guestId) {
+      await cartService.mergeGuestCartToUserCart(guestId, user.id);
+    }
+
     return {
       user: {
         id: user.id,
@@ -138,7 +147,10 @@ class AuthService {
       refreshToken,
     };
   };
-  register = async (data: RegisterRequestDto): Promise<RegisterResponseDto> => {
+  register = async (
+    data: RegisterRequestDto,
+    guestId?: string,
+  ): Promise<RegisterResponseDto> => {
     const { email, username, password } = data;
 
     //Check exist email
@@ -223,6 +235,12 @@ class AuthService {
       },
       ttl,
     );
+
+    // Sync Cart
+    if (guestId) {
+      await cartService.mergeGuestCartToUserCart(guestId, user.id);
+    }
+    
     return {
       user: {
         id: user.id,

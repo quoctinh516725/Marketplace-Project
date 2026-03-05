@@ -1,12 +1,15 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
+import { ProductStatus } from "../constants/productStatus";
 import { InputAll, PrismaType } from "../types";
 import {
   ProductBasicResult,
   ProductDetailResult,
   ProductListResult,
+  ProductVariantResult,
   selectProductBasic,
   selectProductDetail,
+  selectProductVariant,
 } from "../types/product.type";
 
 interface CreateProductData {
@@ -200,6 +203,15 @@ class ProductRepository {
     >`SELECT NEXT VALUE FOR ProductSeq AS value`;
 
     return `PRD${result[0].value.toString().padStart(6, "0")}`;
+  };
+
+  getProductVariantById = async (
+    id: string,
+  ): Promise<ProductVariantResult | null> => {
+    return await prisma.productVariant.findFirst({
+      where: { id, status: ProductStatus.ACTIVE },
+      select: selectProductVariant,
+    });
   };
 
   createProduct = async (
