@@ -1,5 +1,3 @@
-import { profile } from "node:console";
-import { listen } from "node:quic";
 
 export const CacheTTL = {
   auth: {
@@ -19,5 +17,9 @@ export const CacheTTL = {
   product: {
     detail: 3 * 60,
     list: 3 * 60,
+  },
+  cart: {
+    user: 24 * 60 * 60,
+    guest: 7 * 24 * 60 * 60,
   },
 };
