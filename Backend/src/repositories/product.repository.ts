@@ -31,7 +31,7 @@ interface CreateProductVariantData {
   imageUrl: string | null;
   price: number;
   stock: number;
-  weight: number | null;
+  weight: number;
 }
 
 interface CreateProductImageData {
@@ -210,6 +210,15 @@ class ProductRepository {
   ): Promise<ProductVariantResult | null> => {
     return await prisma.productVariant.findFirst({
       where: { id, status: ProductStatus.ACTIVE },
+      select: selectProductVariant,
+    });
+  };
+
+  getProductVariantByIds = async (
+    ids: string[],
+  ): Promise<ProductVariantResult[]> => {
+    return await prisma.productVariant.findMany({
+      where: { id: { in: ids }, status: ProductStatus.ACTIVE },
       select: selectProductVariant,
     });
   };

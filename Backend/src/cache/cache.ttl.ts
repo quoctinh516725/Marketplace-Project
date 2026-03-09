@@ -1,4 +1,3 @@
-
 export const CacheTTL = {
   auth: {
     blacklist: (tokenExp: number) =>
@@ -22,4 +21,5 @@ export const CacheTTL = {
     user: 24 * 60 * 60,
     guest: 7 * 24 * 60 * 60,
   },
+  system: 60 * 60,
 };

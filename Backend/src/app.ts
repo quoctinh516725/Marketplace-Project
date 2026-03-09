@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import { env } from "./config/env";
@@ -43,6 +43,9 @@ app.use("/check", (req, res) => {
 });
 
 app.use("/api", apiRoute);
+app.use("/", (_req: Request, res: Response) => {
+  res.send("<b>WELCOME TO MY BACKEND WEBSITE!</b>");
+});
 
 app.use(errorHandler);
 

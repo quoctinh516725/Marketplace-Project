@@ -1,0 +1,1 @@
+export const DEFAULT_COMMISSION_RATE_VALUE = 0.05;

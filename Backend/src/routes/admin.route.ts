@@ -10,6 +10,7 @@ import { validatePagination } from "../validations/public.validation";
 import roleController from "../controllers/role.controller";
 import permissionController from "../controllers/permission.controller";
 import { PermissionCode } from "../constants/permissionCode";
+import adminController from "../controllers/admin.controller";
 
 const router = express.Router();
 router.use(authenticate);
@@ -94,5 +95,16 @@ permissionRoute.patch("/:id", permissionController.update);
 permissionRoute.delete("/:id", permissionController.delete);
 
 router.use("/permissions", permissionRoute);
+
+// --- SYSTEM
+const systemRoutes = Router();
+systemRoutes.use(requireRole([UserRole.ADMIN]));
+
+systemRoutes.get("/settings", adminController.getSystemSettings);
+systemRoutes.post("/settings", adminController.createSystemSetting);
+systemRoutes.patch("/settings/:key", adminController.updateSystemSetting);
+systemRoutes.delete("/settings/:key", adminController.deleteSystemSetting);
+
+router.use("/", systemRoutes);
 
 export default router;

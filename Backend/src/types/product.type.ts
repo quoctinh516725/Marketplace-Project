@@ -96,6 +96,7 @@ export const selectProductVariant = {
   price: true,
   stock: true,
   variantName: true,
+  weight:true,
   product: {
     select: {
       id: true,
@@ -103,6 +104,15 @@ export const selectProductVariant = {
       name: true,
       thumbnailUrl: true,
       deletedAt: true,
+      shop:{
+        select:{
+          id:true,
+          districtId:true,
+          provinceId:true,
+          wardCode:true,
+          commissionRate:true,
+        }
+      }
     },
   },
 } satisfies Prisma.ProductVariantSelect;

@@ -5,3 +5,5 @@ export * from "./permission.type";
 export * from "./role.type";
 export * from "./shop.type";
 export * from "./category.type";
+export * from "./voucher.type";
+export * from "./system.type";

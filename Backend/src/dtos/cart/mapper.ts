@@ -4,6 +4,7 @@ import { CartResponseDto } from "./cart.response";
 export const toCartResponse = (cart: CartDetailResult): CartResponseDto[] => {
   return cart.cartItems.map((c) => ({
     quantity: c.quantity,
+    shopId: c.product.shopId,
     product: {
       id: c.product.id,
       name: c.product.name,

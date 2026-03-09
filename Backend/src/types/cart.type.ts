@@ -15,6 +15,7 @@ export const selectCartDetail = {
           code: true,
           name: true,
           thumbnailUrl: true,
+          shopId: true,
         },
       },
       variant: {

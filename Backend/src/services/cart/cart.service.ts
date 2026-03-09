@@ -6,6 +6,7 @@ import { NotFoundError } from "../../error/AppError";
 import { cartQueue } from "../../queues/cart.queue";
 import cartRepository from "../../repositories/cart.repository";
 import productRepository from "../../repositories/product.repository";
+import { PrismaType } from "../../types";
 import { getCartCache, setCartCache } from "./cart.cache";
 
 export type CartIdentify = {
@@ -103,6 +104,7 @@ class CartService {
     const product = productVariant.product;
     const mapCartCache: CartResponseDto = {
       quantity,
+      shopId: product.shop.id,
       product: {
         id: product.id,
         name: product.name,
@@ -174,6 +176,32 @@ class CartService {
     const deletedCount = result?.[0]?.[1];
 
     if (deletedCount === 1) {
+      await this.scheduleSyncCart(identify);
+      return 1;
+    }
+
+    return null;
+  };
+  removeItems = async (
+    identify: CartIdentify,
+    variantIds: string[],
+  ): Promise<number | null> => {
+    const key = this.identifyCacheKey(identify);
+    const variantIdSets = [...new Set(variantIds)];
+    const variants =
+      await productRepository.getProductVariantByIds(variantIdSets);
+    if (variants.length < variantIdSets.length)
+      throw new NotFoundError("Một số sản phẩm không tồn tại hoặc đã bị xóa!");
+
+    const result = await redis
+      .multi()
+      .hdel(key, ...variantIdSets)
+      .expire(key, this.getTtl(identify))
+      .exec();
+
+    const deletedCount = result?.[0]?.[1] as number;
+
+    if (deletedCount && deletedCount > 0) {
       await this.scheduleSyncCart(identify);
       return 1;
     }
@@ -281,7 +309,7 @@ class CartService {
       const guestItem = JSON.parse(item);
 
       if (userCart[variantId]) {
-        const userItem = JSON.parse(userCart[variantId]);        
+        const userItem = JSON.parse(userCart[variantId]);
         guestItem.quantity += userItem.quantity;
       }
       console.log(guestItem);

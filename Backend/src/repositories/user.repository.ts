@@ -28,6 +28,12 @@ export interface UpdateUserData {
   deletedAt?: Date;
 }
 
+export interface UpdateUserAddressData {
+  provinceId?: number;
+  districtId?: number;
+  wardCode?: string;
+}
+
 class UserRepository {
   existEmail = async (email: string): Promise<boolean> => {
     const exist = await prisma.user.findUnique({
@@ -64,6 +70,26 @@ class UserRepository {
     return await client.user.update({
       where: { id },
       select: selectUserBasic,
+      data,
+    });
+  };
+
+  updateUserAddress = async (
+    client: PrismaType,
+    userId: string,
+    data: UpdateUserAddressData,
+  ) => {
+    const targetAddress = await client.userAddress.findFirst({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!targetAddress) {
+      return null;
+    }
+
+    return await client.userAddress.update({
+      where: { id: targetAddress.id },
       data,
     });
   };

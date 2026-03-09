@@ -59,8 +59,8 @@ class ShopService {
 
     const shop = await shopRepository.create(sellerId, data);
     await Promise.all([
-      await deleteAuthUserCache(sellerId),
-      await cacheTag.invalidateTag("shop:list"),
+      deleteAuthUserCache(sellerId),
+      cacheTag.invalidateTag("shop:list"),
     ]);
 
     return toShopDetailResponse(shop);

@@ -1,5 +1,6 @@
 export type CartResponseDto = {
   quantity: number;
+  shopId: string;
   product: {
     id: string;
     name: string;

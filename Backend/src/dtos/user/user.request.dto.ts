@@ -6,6 +6,9 @@ export type UserUpdateRequest = {
   phone?: string;
   gender?: string;
   dateOfBirth?: Date;
+  provinceId?: number;
+  districtId?: number;
+  wardCode?: string;
 };
 
 export const userUpdateRequest = (data: any): UserUpdateRequest => {
@@ -28,6 +31,33 @@ export const userUpdateRequest = (data: any): UserUpdateRequest => {
   if (data.gender !== undefined) allowedData.gender = data.gender;
   if (data.dateOfBirth !== undefined)
     allowedData.dateOfBirth = new Date(data.dateOfBirth);
+
+  if (data.provinceId !== undefined) {
+    const provinceId = Number(data.provinceId);
+    if (!Number.isInteger(provinceId) || provinceId <= 0) {
+      throw new ValidationError("provinceId khong hop le!");
+    }
+    allowedData.provinceId = provinceId;
+  }
+
+  if (data.districtId !== undefined) {
+    const districtId = Number(data.districtId);
+    if (!Number.isInteger(districtId) || districtId <= 0) {
+      throw new ValidationError("districtId khong hop le!");
+    }
+    allowedData.districtId = districtId;
+  }
+
+  if (data.wardCode !== undefined) {
+    if (typeof data.wardCode !== "string") {
+      throw new ValidationError("wardCode khong hop le!");
+    }
+    const wardCode = data.wardCode.trim();
+    if (!wardCode) {
+      throw new ValidationError("wardCode khong hop le!");
+    }
+    allowedData.wardCode = wardCode;
+  }
 
   return allowedData;
 };

@@ -69,4 +69,6 @@ export const CacheKey = {
       list: (input: InputAll) => listCache(input, "product:staff"),
     },
   },
+
+  system: (key: string) => `${KEY_PREFIX}:system:${key}`,
 };

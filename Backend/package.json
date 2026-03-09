@@ -7,6 +7,7 @@
     "dev": "nodemon",
     "start": "tsx src/server.ts",
     "create": "tsx src/createProductSearch.ts",
+    "seed:users": "tsx prisma/seed.users.ts",
     "seed:products": "tsx prisma/seed.products.ts",
     "sync:products:es": "tsx src/syncProductsToEs.ts",
     "start:cart-worker": "nodemon --exec tsx src/workers/cart.worker.ts"
@@ -19,6 +20,7 @@
     "@elastic/elasticsearch": "^8.19.1",
     "@prisma/adapter-mssql": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "axios": "^1.13.6",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.70.1",
     "cloudinary": "^2.9.0",
