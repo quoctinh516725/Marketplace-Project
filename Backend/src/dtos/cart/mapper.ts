@@ -10,15 +10,13 @@ export const toCartResponse = (cart: CartDetailResult): CartResponseDto[] => {
       name: c.product.name,
       thumbnailUrl: c.product.thumbnailUrl,
     },
-    ...(c.variant && {
-      variant: {
-        id: c.variant.id,
-        imageUrl: c.variant.imageUrl,
-        price: c.variant.price.toNumber(),
-        stock: c.variant.stock,
-        variantName: c.variant.variantName,
-      },
-    }),
+    variant: {
+      id: c.variant.id,
+      imageUrl: c.variant.imageUrl,
+      price: c.variant.price.toNumber(),
+      stock: c.variant.stock,
+      variantName: c.variant.variantName,
+    },
     addedAt: c.createdAt.getTime(),
   }));
 };

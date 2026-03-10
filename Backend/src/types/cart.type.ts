@@ -3,6 +3,10 @@ import { Prisma } from "../../generated/prisma/client";
 export const selectCartDetail = {
   id: true,
   cartItems: {
+    where: {
+      variant: { deletedAt: null },
+      product: { deletedAt: null },
+    },
     orderBy: {
       createdAt: "asc",
     },

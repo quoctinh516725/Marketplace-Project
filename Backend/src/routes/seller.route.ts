@@ -97,6 +97,12 @@ productRouter.delete(
   productController.deleteProduct,
 );
 
+productRouter.delete(
+  "/variants/:id",
+  requirePermission([PermissionCode.DELETE_PRODUCT]),
+  productController.deleteVariant,
+);
+
 router.use("/products", productRouter);
 
 export default router;

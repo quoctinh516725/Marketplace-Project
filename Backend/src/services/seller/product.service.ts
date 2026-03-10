@@ -513,7 +513,7 @@ class ProductService {
     await this.validateShopProduct(shopId, productId);
 
     const productDeleted = await prisma.$transaction(async (tx) => {
-      const product = await productRepository.deleteProduct(tx, productId);
+      await productRepository.deleteProduct(tx, productId);
 
       // Update Shop Total Product
       await shopRepository.update(tx, shopId, {
@@ -559,6 +559,37 @@ class ProductService {
       doc: { status },
     });
     return toProductPublicResponse(productUpdated);
+  };
+
+  deleteVariant = async (shopId: string, variantId: string): Promise<any> => {
+    // verify variant exists and belongs to shop
+    const variant = await prisma.productVariant.findFirst({
+      where: {
+        id: variantId,
+        product: {
+          shopId,
+        },
+        deletedAt: null,
+      },
+      include: {
+        product: {
+          select: { id: true },
+        },
+      },
+    });
+    if (!variant) {
+      throw new NotFoundError(
+        "Biến thể không tồn tại hoặc không thuộc cửa hàng!",
+      );
+    }
+
+    const deleted = await productRepository.deleteProductVariant(
+      prisma,
+      variantId,
+    );
+    // optionally update status or caches
+    await this.invalidateProductCache(shopId, variant.product.id);
+    return deleted;
   };
 }
 

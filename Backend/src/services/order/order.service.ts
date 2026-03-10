@@ -16,12 +16,20 @@ import adminService from "../admin/admin.service";
 import { System } from "../../constants/system/systemKey";
 import { DEFAULT_COMMISSION_RATE_VALUE } from "../../constants/system/systemValue";
 import ghnService from "../shipping/ghn.service,";
+import paymentRepository from "../../repositories/payment.repository";
+import { paymentQueue } from "../../queues/payment.queue";
+import { orderQueue } from "../../queues/order.queue";
+import { delay } from "bullmq";
+import { PaymentStatus } from "../../constants/payment/paymentStatus";
+import paymentService from "../payment/payment.service";
+import { PaymentMethod } from "../../constants/payment/paymentMethod";
+import { PrismaType } from "../../types";
 
 type ShopVariantItem = {
   variantId: string;
   productId: string;
   productName: string;
-  variantName: string | null;
+  variantName: string;
   shopId: string;
   price: number;
   stock: number;
@@ -39,6 +47,7 @@ class OrderService {
   createOrder = async (
     userId: string,
     data: OrderRequestDto,
+    ipAddr: string,
   ): Promise<OrderResponseDto> => {
     const user = await userRepository.findBasicById(prisma, userId);
     if (!user || user.status !== UserStatus.ACTIVE) {
@@ -72,6 +81,11 @@ class OrderService {
       const variant = variantMap.get(v.variantId);
       if (!variant) {
         throw new ValidationError("Biến thể không hợp lệ");
+      }
+
+      // check soft-delete flags
+      if (variant.deletedAt !== null) {
+        throw new ValidationError("Biến thể không tồn tại hoặc đã bị xóa");
       }
 
       if (!variant.product || variant.product.deletedAt !== null) {
@@ -116,7 +130,7 @@ class OrderService {
     const masterOrderCode = this.generateOrderCode("ORD");
 
     // Caculation Original Total to validation Vocher
-    const itemsTotal = enrichedItems.reduce(
+    const masterOriginalTotal = enrichedItems.reduce(
       (sum, item) => (sum += item.price * item.quantity),
       0,
     );
@@ -134,7 +148,7 @@ class OrderService {
       const result = await voucherService.validationPlatformVoucher(
         prisma,
         userId,
-        { code: data.vouchers.platform.code, orderTotal: itemsTotal },
+        { code: data.vouchers.platform.code, orderTotal: masterOriginalTotal },
       );
 
       totalPlatformDiscount = result.discountAmount;
@@ -179,12 +193,35 @@ class OrderService {
       ),
     );
 
+    const shopShippingFeeMap = new Map<string, number>();
+    for (const [shopId, items] of shopItemMaps) {
+      const shop = shopInforMaps.get(shopId)!;
+
+      // Caculate Shiping Fee
+      const shippingData = {
+        fromDistrictId: shop.districtId,
+        fromWardCode: shop.wardCode,
+        toDistrictId: data.districtId,
+        toWardCode: data.wardCode,
+        weight: items.reduce(
+          (sum, item) => (sum += item.weight * item.quantity),
+          0,
+        ),
+        totalAmount: items.reduce(
+          (sum, item) => (sum += item.price * item.quantity),
+          0,
+        ),
+      };
+      const shippingFee = await ghnService.calculateFee(shippingData);
+      shopShippingFeeMap.set(shopId, shippingFee);
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // Create MasterOrder
       const masterOrder = await orderRepository.createOrder(tx, {
         userId,
         orderCode: masterOrderCode,
-        itemsTotal,
+        itemsTotal: masterOriginalTotal,
         shippingTotal: 0,
         originalTotalAmount: 0,
         platformDiscount: totalPlatformDiscount,
@@ -207,20 +244,10 @@ class OrderService {
         const subOrderCode = this.generateOrderCode("SUB");
 
         // Caculate totalAmout
-        const totalAmount = items.reduce(
+        const itemsTotal = items.reduce(
           (sum, item) => (sum += item.price * item.quantity),
           0,
         );
-        // Caculate Shiping Fee
-        const shippingData = {
-          fromDistrictId: shop.districtId,
-          fromWardCode: shop.wardCode,
-          toDistrictId: data.districtId,
-          toWardCode: data.wardCode,
-          weight: items.reduce((sum, item) => (sum += item.weight), 0),
-          totalAmount,
-        };
-        const shippingFee = await ghnService.calculateFee(shippingData);
 
         // Caculate Shop Vocher Discount
         const totalShopDiscount =
@@ -228,35 +255,37 @@ class OrderService {
 
         // Caculate Platform Discount Share
         const totalPlatformDiscountShare =
-          (totalAmount / itemsTotal) * totalPlatformDiscount;
+          (itemsTotal / masterOriginalTotal) * totalPlatformDiscount;
 
         const totalDiscountSubOrder =
           totalShopDiscount + totalPlatformDiscountShare;
 
         // Caculate Commission Amount
         const totalAmountAfterDiscountSubOrder =
-          totalAmount - totalDiscountSubOrder;
+          itemsTotal - totalDiscountSubOrder;
+
         const commissionAmount =
           totalAmountAfterDiscountSubOrder *
           (shop.commissionRate ?? defaultCommissionRate);
 
+        const shippingFee = shopShippingFeeMap.get(shop.id)!;
         // Caculate Real Amount Shop get
-        const realAmount =
+        const realAmountShopGet =
           totalAmountAfterDiscountSubOrder + shippingFee - commissionAmount;
 
         // Caculate Real Amount User pay
-        const subOrderTotal =
-          realAmount + shippingFee - totalPlatformDiscountShare;
+        const totalAmountUserPay =
+          totalAmountAfterDiscountSubOrder + shippingFee;
 
         const subOrderData = await orderRepository.createSubOrder(tx, {
           masterOrderId: masterOrder.id,
           shopId,
-          itemsTotal: totalAmount,
+          itemsTotal,
           shippingFee,
           discountAmount: totalDiscountSubOrder,
           commissionAmount,
-          realAmount,
-          totalAmount: subOrderTotal,
+          realAmount: realAmountShopGet,
+          totalAmount: totalAmountUserPay,
           subOrderCode,
           orderItems: {
             createMany: {
@@ -273,13 +302,29 @@ class OrderService {
           },
         });
 
-        totalMasterOrder += subOrderTotal;
-        originalTotalAmount += totalAmount + shippingFee;
+        totalMasterOrder += totalAmountUserPay;
+        originalTotalAmount += itemsTotal + shippingFee;
         shippingTotal += shippingFee;
         subOrders.push(subOrderData);
       }
 
-      
+      // Create Payment
+      const payment = await paymentRepository.createPayment(tx, {
+        masterOrderId: masterOrder.id,
+        paymentMethod: data.paymentMethod,
+        totalAmount: totalMasterOrder,
+        userId,
+      });
+
+      //Create Payment Allocation
+      await paymentRepository.createPaymentAllocations(
+        tx,
+        subOrders.map((order) => ({
+          paymentId: payment.id,
+          subOrderId: order.id,
+          amount: order.totalAmount,
+        })),
+      );
 
       // Update Master Order
       await orderRepository.updateOrder(tx, masterOrder.id, {
@@ -300,14 +345,25 @@ class OrderService {
         ...(platformVoucher?.id ? [platformVoucher.id] : []),
         ...Array.from(shopVoucherMaps.values()).map((v) => v.voucher.id),
       ];
+
       const lockVocherDatas = usageVouchers.map((v) => ({
         voucherId: v,
         userId,
         usedAt: new Date(),
       }));
+
       if (usageVouchers.length > 0) {
         await voucherService.applyVoucher(tx, lockVocherDatas);
       }
+
+      return {
+        orderId: masterOrder.id,
+        totalAmount: totalMasterOrder,
+        paymentId: payment.id,
+        paymentMethod: payment.paymentMethod,
+        orderCode: masterOrderCode,
+        status: payment.status as PaymentStatus,
+      };
     });
 
     // Remove Cart
@@ -316,7 +372,47 @@ class OrderService {
       enrichedItems.map((i) => i.variantId),
     );
 
-    return result;
+    // Sync Payment
+    await paymentQueue.add(
+      "expire-payment",
+      { paymentId: result.paymentId },
+      { delay: 15 * 60 * 1000, removeOnComplete: true, removeOnFail: true },
+    );
+
+    // Sync Order
+    await orderQueue.add(
+      "expire-order",
+      {
+        orderId: result.orderId,
+        userId,
+      },
+      {
+        delay: 24 * 60 * 60 * 1000,
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+    );
+    let paymentUrl: string | undefined = undefined;
+    if (result.paymentMethod !== PaymentMethod.COD)
+      // Generate Payment_Url
+      paymentUrl = paymentService.generatePaymentUrl(
+        result.paymentId,
+        result.totalAmount,
+        ipAddr,
+      );
+
+    return { ...result, paymentUrl };
+  };
+
+  getOrderDetail = async (
+    client: PrismaType,
+    orderId: string,
+    userId: string,
+  ) => {
+    const order = await orderRepository.findById(client, orderId, userId);
+
+    if (!order) throw new NotFoundError("Không tìm thấy đơn hàng");
+    return order;
   };
 }
 

@@ -54,7 +54,7 @@ export const setCartCache = async (
     const hashCart: Record<string, string> = {};
 
     for (const c of cart) {
-      const field = c.variant?.id ?? c.product.id;
+      const field = c.variant.id;
       hashCart[field] = JSON.stringify(c);
     }
 

@@ -97,7 +97,11 @@ class CartService {
 
     const productVariant =
       await productRepository.getProductVariantById(variantId);
-    if (!productVariant || productVariant.product.deletedAt != null) {
+    if (
+      !productVariant ||
+      productVariant.deletedAt != null ||
+      productVariant.product.deletedAt != null
+    ) {
       throw new NotFoundError("Sản phẩm không hợp lệ hoặc đã bị gỡ!");
     }
 

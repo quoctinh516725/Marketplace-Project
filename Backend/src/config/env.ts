@@ -34,4 +34,9 @@ export const env = {
   GHN_TOKEN: required("GHN_TOKEN"),
   GHN_SHOP_ID: required("GHN_SHOP_ID"),
   GHN_API_URL: required("GHN_API_URL"),
+
+  VNP_TMNCODE: required("VNP_TMNCODE"),
+  VNP_HASHSECRET: required("VNP_HASHSECRET"),
+  VNP_URL: required("VNP_URL"),
+  VNP_RETURN_URL: required("VNP_RETURN_URL"),
 };

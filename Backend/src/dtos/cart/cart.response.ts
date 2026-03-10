@@ -6,7 +6,7 @@ export type CartResponseDto = {
     name: string;
     thumbnailUrl: string;
   };
-  variant?: {
+  variant: {
     id: string;
     imageUrl: string | null;
     price: number;

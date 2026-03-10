@@ -12,7 +12,7 @@ type CreateProductVariantRequestData = {
   imageUrl: string | null;
   price: number;
   stock: number;
-  weight: number | null;
+  weight: number;
   attributes: CreateProductAttributeRequestData[];
 };
 

@@ -10,6 +10,7 @@ class InventoryRepository {
     UPDATE "productVariant"
     SET "reservedStock" = "reservedStock" + ${item.quantity}
     WHERE id = ${item.variantId}
+    AND "deletedAt" IS NULL
     AND "stock" - "reservedStock" >= ${item.quantity}
     `;
 

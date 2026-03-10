@@ -275,13 +275,14 @@ model ProductVariant {
   id          String   @id @default(uuid())
   productId   String   @map("product_id")
   sku         String   @unique
-  variantName String?  @map("variant_name")
+  variantName String  @map("variant_name")
   imageUrl    String?  @map("image_url")
   price       Decimal
   stock       Int
   reservedStock Int @map("reserved_stock") @default(0)
   weight      Float
   status      String   @default("PENDING_APPROVE")
+  deletedAt   DateTime? @map("delete_at")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt  @default(now()) @map("updated_at")
 
@@ -364,14 +365,14 @@ model CartItem {
   id        String   @id @default(uuid())
   cartId    String   @map("cart_id")
   productId String   @map("product_id")
-  variantId String?  @map("variant_id")
+  variantId String   @map("variant_id")
   quantity  Int
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt  @default(now()) @map("updated_at")
-  product   Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart    Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([cartId, variantId])
   @@map("cart_items")
@@ -424,7 +425,7 @@ model SubOrder {
 
   // Status State Machine
   status String @default("PENDING_PAYMENT") @map("status")
-  // PENDING_PAYMENT, PAID, PROCESSING, SHIPPING, DELIVERED, COMPLETED, CANCELLED, REFUNDED
+  // PENDING_PAYMENT, PAID, SHIPPING, COMPLETED, CANCELLED, REFUNDED
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt  @default(now()) @map("updated_at")
@@ -444,14 +445,14 @@ model OrderItem {
   id         String  @id @default(uuid())
   subOrderId String  @map("sub_order_id")
   productId  String  @map("product_id")
-  variantId  String? @map("variant_id")
+  variantId  String @map("variant_id")
 
   quantity Int
   price    Decimal @db.Decimal(12, 2)
 
   // Snapshot data
   productName String  @map("product_name")
-  variantName String? @map("variant_name")
+  variantName String @map("variant_name")
   totalPrice  Decimal @map("total_price") @db.Decimal(12, 2)
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -468,9 +469,9 @@ model Payment {
   masterOrderId String @map("master_order_id")
   userId     String @map("user_id")
 
-  paymentMethod String  @map("payment_method") // VNPAY, MOMO, COD...
+  paymentMethod String @default("COD")  @map("payment_method") // VNPAY, MOMO, COD...
   totalAmount   Decimal @map("total_amount") @db.Decimal(12, 2)
-  transactionId String? @map("transaction_id")
+  transactionId String? @map("transaction_id") @unique
 
   status String @default("PENDING") // PENDING, SUCCESS, FAILED, EXPIRED
 

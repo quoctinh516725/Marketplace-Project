@@ -120,7 +120,18 @@ class ProductController {
       sendSuccess(res, result, "Xoa san pham thanh cong!");
     },
   );
-  
+
+  deleteVariant = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const shopId = req.user?.shopId;
+      if (!shopId) throw new NotFoundError("Nguoi dung khong co cua hang!");
+      const variantId = req.params.id as string;
+
+      const result = await productService.deleteVariant(shopId, variantId);
+      sendSuccess(res, result, "Xoa bien the thanh cong!");
+    },
+  );
+
   updateProductStatus = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const statusValidated = updateShopProductStatusRequestDto(req.body);

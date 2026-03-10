@@ -27,7 +27,7 @@ interface CreateProductData {
 interface CreateProductVariantData {
   productId: string;
   sku: string;
-  variantName: string | null;
+  variantName: string;
   imageUrl: string | null;
   price: number;
   stock: number;
@@ -209,7 +209,7 @@ class ProductRepository {
     id: string,
   ): Promise<ProductVariantResult | null> => {
     return await prisma.productVariant.findFirst({
-      where: { id, status: ProductStatus.ACTIVE },
+      where: { id, status: ProductStatus.ACTIVE, deletedAt: null },
       select: selectProductVariant,
     });
   };
@@ -218,7 +218,7 @@ class ProductRepository {
     ids: string[],
   ): Promise<ProductVariantResult[]> => {
     return await prisma.productVariant.findMany({
-      where: { id: { in: ids }, status: ProductStatus.ACTIVE },
+      where: { id: { in: ids }, status: ProductStatus.ACTIVE, deletedAt: null },
       select: selectProductVariant,
     });
   };
@@ -318,6 +318,13 @@ class ProductRepository {
       where: { id },
       data: { deletedAt: new Date() },
       select: selectProductBasic,
+    });
+  };
+
+  deleteProductVariant = async (client: PrismaType, id: string) => {
+    return await client.productVariant.update({
+      where: { id },
+      data: { deletedAt: new Date() },
     });
   };
 
