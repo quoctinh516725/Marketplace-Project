@@ -39,4 +39,6 @@ export const env = {
   VNP_HASHSECRET: required("VNP_HASHSECRET"),
   VNP_URL: required("VNP_URL"),
   VNP_RETURN_URL: required("VNP_RETURN_URL"),
+  EMAIL_USER: required("EMAIL_USER"),
+  EMAIL_PASSWORD: required("EMAIL_PASSWORD"),
 };

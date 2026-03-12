@@ -1,5 +1,16 @@
 import { Prisma } from "../../generated/prisma/client";
-import { PrismaType } from "../types";
+import { prisma } from "../config/prisma";
+import { InputAll, PrismaType } from "../types";
+import {
+  BasicSubOrder,
+  DetailOrder,
+  DetailSubOrder,
+  DetailSubOrderList,
+  OrderListItem,
+  selectedOrderDetail,
+  selectedSubOrderBasic,
+  selectedSubOrderDetail,
+} from "../types/order.type";
 
 type CreateOrder = {
   userId: string;
@@ -46,14 +57,99 @@ class OrderRepository {
     return result;
   };
 
-  findById = async (client: PrismaType, id: string, userId: string) => {
-    return await client.masterOrder.findUnique({ where: { id, userId } });
+  updateSubOrder = async (
+    client: PrismaType,
+    id: string,
+    data: UpdateSubOrderData,
+  ) => {
+    const result = await client.subOrder.update({
+      where: { id },
+      data,
+    });
+    return result;
   };
+
+  findById = async (
+    client: PrismaType,
+    id: string,
+    userId: string,
+  ): Promise<DetailOrder | null> => {
+    return await client.masterOrder.findUnique({
+      where: { id, userId },
+      select: selectedOrderDetail,
+    });
+  };
+
+  findSubOrderById = async (id: string): Promise<DetailSubOrder | null> => {
+    return await prisma.subOrder.findUnique({
+      where: { id },
+      select: selectedSubOrderDetail,
+    });
+  };
+
 
   findOrderItemBySubOrderIds = async (client: PrismaType, ids: string[]) => {
     return await client.orderItem.findMany({
       where: { subOrderId: { in: ids } },
     });
+  };
+
+  findOrdersByUserId = async (
+    userId: string,
+    input: InputAll,
+  ): Promise<OrderListItem> => {
+    const { page, limit, status, search } = input;
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const where: Prisma.MasterOrderWhereInput = {
+      userId,
+      ...(status && { status }),
+      ...(search && {
+        OR: [{ orderCode: { contains: search } }],
+      }),
+    };
+
+    const [subOrders, total] = await Promise.all([
+      prisma.masterOrder.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        select: selectedOrderDetail,
+      }),
+      prisma.masterOrder.count({ where }),
+    ]);
+
+    return { data: subOrders, total };
+  };
+
+  findSubOrdersByShopId = async (
+    shopId: string,
+    input: InputAll,
+  ): Promise<DetailSubOrderList> => {
+    const { page, limit, status, search } = input;
+    const skip = (page - 1) * limit;
+    const take = limit;
+    const where: Prisma.SubOrderWhereInput = {
+      shopId,
+      ...(status && { status }),
+      ...(search && {
+        OR: [{ subOrderCode: { contains: search } }],
+      }),
+    };
+    const [subOrders, total] = await Promise.all([
+      prisma.subOrder.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        select: selectedSubOrderDetail,
+      }),
+      prisma.subOrder.count({ where }),
+    ]);
+
+    return { data: subOrders, total };
   };
 }
 export default new OrderRepository();

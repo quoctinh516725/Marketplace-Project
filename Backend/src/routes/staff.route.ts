@@ -106,6 +106,7 @@ categoryRoute.delete(
   categoryController.deleteCategoryAttribute,
 );
 
+
 router.use("/categories", categoryRoute);
 
 export default router;

@@ -7,7 +7,6 @@ import { NotFoundError, ValidationError } from "../../error/AppError";
 import cartService from "../cart/cart.service";
 import { randomInt } from "node:crypto";
 import productRepository from "../../repositories/product.repository";
-import inventoryRepository from "../../repositories/inventory.repository";
 import inventoryService from "../inventory/inventory.service";
 import orderRepository from "../../repositories/order.repository";
 import voucherService from "../voucher/voucher.service";
@@ -19,11 +18,16 @@ import ghnService from "../shipping/ghn.service,";
 import paymentRepository from "../../repositories/payment.repository";
 import { paymentQueue } from "../../queues/payment.queue";
 import { orderQueue } from "../../queues/order.queue";
-import { delay } from "bullmq";
 import { PaymentStatus } from "../../constants/payment/paymentStatus";
 import paymentService from "../payment/payment.service";
 import { PaymentMethod } from "../../constants/payment/paymentMethod";
-import { PrismaType } from "../../types";
+import { InputAll, PrismaType } from "../../types";
+import { emailQueue } from "../../queues/email.queue";
+import { OrderStatus } from "../../constants/orderStatus";
+import { RefundStatus } from "../../constants/refundStatus";
+import refundRepository from "../../repositories/refund.repository";
+import shopRepository from "../../repositories/shop.repository";
+import { ShopStatus } from "../../constants/shopStatus";
 
 type ShopVariantItem = {
   variantId: string;
@@ -35,11 +39,12 @@ type ShopVariantItem = {
   stock: number;
   quantity: number;
   weight: number;
+  imageUrl?: string;
 };
 
 class OrderService {
   private generateOrderCode = (prefix: string): string => {
-    const timestamp = new Date().toDateString().slice(0, 10).replace(/-/g, "");
+    const timestamp = Date.now().toString().slice(-8);
     const random = randomInt(1000, 9999).toString();
     return `${prefix}-${timestamp}-${random}`;
   };
@@ -83,6 +88,10 @@ class OrderService {
         throw new ValidationError("Biến thể không hợp lệ");
       }
 
+      if (variant.stock < v.quantity) {
+        throw new ValidationError("Số lượng sản phẩm trong kho không đủ");
+      }
+
       // check soft-delete flags
       if (variant.deletedAt !== null) {
         throw new ValidationError("Biến thể không tồn tại hoặc đã bị xóa");
@@ -102,6 +111,7 @@ class OrderService {
         stock: variant.stock,
         quantity: v.quantity,
         weight: variant.weight,
+        imageUrl: variant.imageUrl || variant.product.thumbnailUrl,
       };
     });
 
@@ -194,27 +204,29 @@ class OrderService {
     );
 
     const shopShippingFeeMap = new Map<string, number>();
-    for (const [shopId, items] of shopItemMaps) {
-      const shop = shopInforMaps.get(shopId)!;
 
-      // Caculate Shiping Fee
-      const shippingData = {
-        fromDistrictId: shop.districtId,
-        fromWardCode: shop.wardCode,
-        toDistrictId: data.districtId,
-        toWardCode: data.wardCode,
-        weight: items.reduce(
-          (sum, item) => (sum += item.weight * item.quantity),
-          0,
-        ),
-        totalAmount: items.reduce(
-          (sum, item) => (sum += item.price * item.quantity),
-          0,
-        ),
-      };
-      const shippingFee = await ghnService.calculateFee(shippingData);
-      shopShippingFeeMap.set(shopId, shippingFee);
-    }
+    await Promise.all(
+      [...shopItemMaps.entries()].map(async ([shopId, items]) => {
+        const shop = shopInforMaps.get(shopId)!;
+        // Caculate Shiping Fee
+        const shippingData = {
+          fromDistrictId: shop.districtId,
+          fromWardCode: shop.wardCode,
+          toDistrictId: data.districtId,
+          toWardCode: data.wardCode,
+          weight: items.reduce(
+            (sum, item) => (sum += item.weight * item.quantity),
+            0,
+          ),
+          totalAmount: items.reduce(
+            (sum, item) => (sum += item.price * item.quantity),
+            0,
+          ),
+        };
+        const shippingFee = await ghnService.calculateFee(shippingData);
+        shopShippingFeeMap.set(shopId, shippingFee);
+      }),
+    );
 
     const result = await prisma.$transaction(async (tx) => {
       // Create MasterOrder
@@ -297,6 +309,7 @@ class OrderService {
                 quantity: i.quantity,
                 price: i.price,
                 totalPrice: Number(i.price) * i.quantity,
+                imageUrl: i.imageUrl,
               })),
             },
           },
@@ -324,6 +337,13 @@ class OrderService {
           subOrderId: order.id,
           amount: order.totalAmount,
         })),
+      );
+
+      // Update currentPaymentId for SubOrder
+      await orderRepository.updateSubOrders(
+        tx,
+        subOrders.map((o) => o.id),
+        { currentPaymentId: payment.id },
       );
 
       // Update Master Order
@@ -392,27 +412,265 @@ class OrderService {
         removeOnFail: true,
       },
     );
+
+    // Send Email
+    await emailQueue.add(
+      "ORDER_CREATED",
+      {
+        orderId: result.orderId,
+        userId,
+      },
+      { removeOnComplete: true, removeOnFail: true },
+    );
+
     let paymentUrl: string | undefined = undefined;
-    if (result.paymentMethod !== PaymentMethod.COD)
+    if (result.paymentMethod !== PaymentMethod.COD) {
       // Generate Payment_Url
       paymentUrl = paymentService.generatePaymentUrl(
         result.paymentId,
         result.totalAmount,
         ipAddr,
       );
+    }
 
     return { ...result, paymentUrl };
   };
 
-  getOrderDetail = async (
-    client: PrismaType,
-    orderId: string,
-    userId: string,
-  ) => {
-    const order = await orderRepository.findById(client, orderId, userId);
+  getSubOrderDetail = async (subOrderId: string, userId: string) => {
+    const subOrder = await orderRepository.findSubOrderById(subOrderId);
 
-    if (!order) throw new NotFoundError("Không tìm thấy đơn hàng");
-    return order;
+    if (!subOrder) throw new NotFoundError("Không tìm thấy đơn hàng");
+    if (subOrder.masterOrder.userId !== userId) {
+      throw new ValidationError("Bạn không có quyền xem đơn hàng này!");
+    }
+    return subOrder;
+  };
+
+  getMyOrders = async (userId: string, input: InputAll) => {
+    const user = await userRepository.findBasicById(prisma, userId);
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new NotFoundError("Người dùng không tồn tại hoặc không hoạt động!");
+    }
+
+    return await orderRepository.findOrdersByUserId(userId, input);
+  };
+
+  cancelSubOrder = async (
+    userId: string,
+    subOrderId: string,
+    reason: string,
+  ) => {
+    const subOrder = await orderRepository.findSubOrderById(subOrderId);
+    if (!subOrder) throw new NotFoundError("Không tìm thấy đơn hàng");
+
+    if (subOrder.masterOrder.userId !== userId) {
+      throw new ValidationError("Bạn không có quyền hủy đơn hàng này!");
+    }
+
+    if (subOrder.status === OrderStatus.COMPLETED) {
+      throw new ValidationError(
+        "Đơn hàng đã xác nhận thành công không thể hủy được!",
+      );
+    }
+
+    const allowCancelStatus: OrderStatus[] = [
+      OrderStatus.PENDING_PAYMENT,
+      OrderStatus.PAID,
+      OrderStatus.SHIPPING,
+    ];
+
+    if (!allowCancelStatus.includes(subOrder.status as OrderStatus)) {
+      throw new ValidationError(
+        "Đơn hàng đang ở trạng thái không thể hủy được!",
+      );
+    }
+
+    const payment = await paymentRepository.findByCurrentPaymentId(
+      prisma,
+      subOrder.currentPaymentId!,
+    );
+
+    if (!payment) throw new NotFoundError("Không tìm thấy giao dịch!");
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Auto cancel sub order if order status is pending payment
+      if (subOrder.status === OrderStatus.PENDING_PAYMENT) {
+        // Release Stock
+        await inventoryService.releaseStock(
+          tx,
+          subOrder.orderItems.map((item) => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+        );
+
+        
+
+        // Update Sub Order
+        await orderRepository.updateSubOrder(tx, subOrder.id, {
+          status: OrderStatus.CANCELLED,
+        });
+
+        return {
+          message: "Yêu cầu hủy đơn đã được xử lý thành công!",
+        };
+      }
+
+      // Create Refund
+      const refund = await refundRepository.createRefund(tx, {
+        amount: subOrder.totalAmount,
+        reason,
+        subOrderId: subOrder.id,
+        status: RefundStatus.REQUESTED,
+        paymentId: payment.id,
+      });
+
+      return {
+        message: "Yêu cầu hủy đơn đã được gửi thành công, đang chờ xử lý!",
+        refundId: refund.id,
+      };
+    });
+
+    // Sync Order
+    if (result.refundId) {
+      await orderQueue.add(
+        "refund-sub-order",
+        {
+          refundId: result.refundId,
+        },
+        {
+          delay: 24 * 60 * 60 * 1000,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    }
+
+    return result;
+  };
+
+  getShopOrders = async (shopId: string, input: InputAll) => {
+    const shop = await shopRepository.findShopById(shopId);
+    if (!shop || shop.status !== ShopStatus.ACTIVE) {
+      throw new NotFoundError("Shop không tồn tại hoặc không hoạt động!");
+    }
+    return await orderRepository.findSubOrdersByShopId(shopId, input);
+  };
+
+  updateSubOrderStatus = async (
+    subOrderId: string,
+    shopId: string,
+    status: OrderStatus,
+  ) => {
+    const subOrder = await orderRepository.findSubOrderById(subOrderId);
+    if (!subOrder) throw new NotFoundError("Không tìm thấy đơn hàng");
+
+    if (subOrder.shopId !== shopId) {
+      throw new ValidationError("Bạn không có quyền cập nhật đơn hàng này!");
+    }
+
+    const payment = await paymentRepository.findByCurrentPaymentId(
+      prisma,
+      subOrder.currentPaymentId!,
+    );
+    if (!payment) throw new NotFoundError("Không tìm thấy giao dịch!");
+
+    if (
+      payment.paymentMethod !== PaymentMethod.COD &&
+      payment.status !== PaymentStatus.SUCCESS
+    ) {
+      throw new ValidationError(
+        "Giao dịch chưa thanh toán không thể cập nhật trạng thái đơn hàng!",
+      );
+    }
+
+    // Mô phỏng delivered sau 30s khi shop chuyển trạng thái sang shipping
+    await orderQueue.add(
+      "deliver-sub-order",
+      { subOrderId: subOrder.id },
+      { delay: 30 * 1000 },
+    );
+
+    return await orderRepository.updateSubOrder(prisma, subOrder.id, {
+      status,
+    });
+  };
+
+  handleRefundRequest = async (
+    shopId: string,
+    refundId: string,
+    actions: "APPROVE" | "REJECT",
+  ) => {
+    const refundRequest = await refundRepository.findRefundById(refundId);
+    if (!refundRequest)
+      throw new NotFoundError("Không tìm thấy yêu cầu trả hàng");
+
+    if (refundRequest.subOrder.shopId !== shopId) {
+      throw new ValidationError(
+        "Bạn không có quyền xử lý yêu cầu trả hàng này!",
+      );
+    }
+
+    if (refundRequest.status !== RefundStatus.REQUESTED) {
+      throw new ValidationError(
+        "Yêu cầu trả hàng đang ở trạng thái không thể xử lý!",
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (actions === "REJECT") {
+        await refundRepository.updateRefund(tx, refundId, {
+          status: RefundStatus.REJECTED,
+        });
+        return;
+      }
+
+      // APPROVE
+
+      await refundRepository.updateRefund(tx, refundId, {
+        status: RefundStatus.APPROVED,
+      });
+
+      // Update Sub Order Status to RETURNED
+      await orderRepository.updateSubOrder(tx, refundRequest.subOrder.id, {
+        status: OrderStatus.CANCELLED,
+      });
+
+      if (refundRequest.payment.paymentMethod === PaymentMethod.COD) {
+        // Release Stock
+        await inventoryService.releaseStock(
+          tx,
+          refundRequest.subOrder.orderItems.map((item) => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+        );
+      } else {
+        await inventoryService.incrementStock(
+          tx,
+          refundRequest.subOrder.orderItems.map((item) => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+        );
+      }
+    });
+  };
+
+  confirmReceived = async (userId: string, subOrderId: string) => {
+    const subOrder = await orderRepository.findSubOrderById(subOrderId);
+    if (!subOrder) throw new NotFoundError("Không tìm thấy đơn hàng");
+
+    if (subOrder.masterOrder.userId !== userId) {
+      throw new ValidationError("Bạn không có quyền xác nhận đơn hàng này!");
+    }
+
+    await orderRepository.updateSubOrder(prisma, subOrderId, {
+      status: OrderStatus.COMPLETED,
+    });
+    return {
+      message: "Xác nhận nhận hàng thành công!",
+    };
   };
 }
 

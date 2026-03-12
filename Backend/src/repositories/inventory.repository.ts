@@ -43,6 +43,18 @@ class InventoryRepository {
       },
     });
   };
+
+  incrementStock = async (
+    client: PrismaType,
+    item: { variantId: string; quantity: number },
+  ) => {
+    return client.productVariant.update({
+      where: { id: item.variantId },
+      data: {
+        stock: { increment: item.quantity },
+      },
+    });
+  };
 }
 
 export default new InventoryRepository();

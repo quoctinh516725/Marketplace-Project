@@ -13,6 +13,7 @@ import { paymentQueue } from "../../queues/payment.queue";
 import { formatDate } from "../../utils/format";
 import orderRepository from "../../repositories/order.repository";
 import inventoryService from "../inventory/inventory.service";
+import { emailQueue } from "../../queues/email.queue";
 
 type GetPaymentReturn = {
   paymentId: string;
@@ -51,6 +52,10 @@ class PaymentService {
         throw new NotFoundError("Không tìm thấy giao dịch");
       }
 
+      if (payment.status === PaymentStatus.SUCCESS) {
+        return payment;
+      }
+
       // Update Payment Status
       const updatedPayment = await paymentRepository.update(tx, payment.id, {
         status: PaymentStatus.SUCCESS,
@@ -60,10 +65,11 @@ class PaymentService {
 
       // Update  MasterOrder Status
       await orderRepository.updateOrder(tx, payment.masterOrderId, {
-        status: PaymentStatus.SUCCESS,
+        status: OrderStatus.PAID,
       });
 
       const subTotalIds = payment.allocations.map((a) => a.subOrderId);
+      
       // Update SubOrder Status
       await orderRepository.updateSubOrders(tx, subTotalIds, {
         status: OrderStatus.PAID,
@@ -84,7 +90,38 @@ class PaymentService {
       return updatedPayment;
     });
 
-    
+    // Send Email
+    await emailQueue.add(
+      "PAYMENT_SUCCESS",
+      {
+        orderId: result.masterOrderId,
+        userId: result.userId,
+      },
+      { removeOnComplete: true, removeOnFail: true },
+    );
+
+    return result;
+  };
+
+  handlePaymentFailed = async (paymentId: string, transactionId: string) => {
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await paymentRepository.findById(tx, paymentId);
+
+      if (!payment) {
+        throw new NotFoundError("Không tìm thấy giao dịch");
+      }
+
+      // Update Payment Status
+      const updatedPayment = await paymentRepository.update(tx, payment.id, {
+        status: PaymentStatus.FAILED,
+        transactionId,
+        paidAt: new Date(),
+      });
+
+      return updatedPayment;
+    });
+
+    return result;
   };
 
   generatePaymentUrl = (
@@ -144,7 +181,6 @@ class PaymentService {
     if (!payment) {
       throw new NotFoundError("Không tìm thấy giao dịch");
     }
-
     let message = "Thanh toán thất bại";
 
     if (responseCode === "00" && transactionStatus === "00") {
@@ -168,8 +204,22 @@ class PaymentService {
     const transactionStatus = vnp_Params["vnp_TransactionStatus"];
     const transactionNo = vnp_Params["vnp_TransactionNo"];
 
+    const payment = await paymentRepository.findById(prisma, paymentId);
+
+    if (!payment) {
+      throw new NotFoundError("Không tìm thấy giao dịch");
+    }
+    if (
+      payment.status === PaymentStatus.SUCCESS ||
+      payment.status === PaymentStatus.FAILED
+    ) {
+      return;
+    }
+
     if (responseCode === "00" && transactionStatus === "00") {
+      await this.handlePaymentSuccess(paymentId, transactionNo);
     } else {
+      await this.handlePaymentFailed(paymentId, transactionNo);
     }
   };
 
@@ -185,7 +235,7 @@ class PaymentService {
             WHERE id = ${orderId}
             FOR UPDATE
         `;
-      const order = await orderService.getOrderDetail(
+      const order = await orderRepository.findById(
         tx,
         orderId as string,
         userId,
@@ -235,6 +285,12 @@ class PaymentService {
             subOrderId: alloc.subOrderId,
             amount: alloc.amount,
           })),
+        );
+
+        await orderRepository.updateSubOrders(
+          tx,
+          payment.allocations.map((a) => a.subOrderId),
+          { currentPaymentId: newPayment.id },
         );
 
         payment = newPayment;

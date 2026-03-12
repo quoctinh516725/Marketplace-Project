@@ -8,6 +8,7 @@ import shopController from "../controllers/seller/shop.controller";
 import { PermissionCode } from "../constants/permissionCode";
 import { validatePagination } from "../validations/public.validation";
 import productController from "../controllers/seller/product.controller";
+import orderController from "../controllers/seller/order.controller";
 
 const router = express.Router();
 router.use(authenticate);
@@ -104,5 +105,29 @@ productRouter.delete(
 );
 
 router.use("/products", productRouter);
+
+// MANAGE ORDER
+const orderRouter = express.Router();
+orderRouter.get(
+  "/",
+  validatePagination,
+  requirePermission([PermissionCode.VIEW_ORDER]),
+  orderController.getShopOrders,
+);
+
+orderRouter.patch(
+  "/:id/status",
+  requirePermission([PermissionCode.UPDATE_ORDER]),
+  orderController.updateSubOrderStatus,
+);
+
+orderRouter.post(
+  "/:id/refund",
+  requirePermission([PermissionCode.UPDATE_ORDER]),
+  orderController.handleRefundRequest,
+);
+
+
+router.use("/orders", orderRouter);
 
 export default router;

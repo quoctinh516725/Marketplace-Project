@@ -43,6 +43,20 @@ class InventoryService {
       ),
     );
   }
+
+  async incrementStock(
+    client: PrismaType,
+    items: { variantId: string; quantity: number }[],
+  ) {
+    await Promise.all(
+      items.map((item) =>
+        inventoryRepository.incrementStock(client, {
+          variantId: item.variantId,
+          quantity: item.quantity,
+        }),
+      ),
+    );
+  }
 }
 
 export default new InventoryService();

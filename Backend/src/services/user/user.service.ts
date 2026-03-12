@@ -25,7 +25,11 @@ import {
   toUserBasicResponse,
 } from "../../dtos/user/mapper.dto";
 import { deleteAuthUserCache } from "../auth/auth.cache";
-import { UserUpdateRequest } from "../../dtos/user/user.request.dto";
+import {
+  CreateUserAddressRequest,
+  UpdateUserAddressRequest,
+  UserUpdateRequest,
+} from "../../dtos/user/user.request.dto";
 
 class UserService {
   getMe = async (userId: string): Promise<UserDetailResponseDto> => {
@@ -112,39 +116,45 @@ class UserService {
     const user = await userRepository.findUserDetailById(prisma, userId);
     if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
-    const { provinceId, districtId, wardCode, ...userPayload } = data;
-    const hasAddressPayload =
-      provinceId !== undefined ||
-      districtId !== undefined ||
-      wardCode !== undefined;
-
-    const result = await prisma.$transaction(async (tx) => {
-      if (Object.keys(userPayload).length > 0) {
-        await userRepository.update(tx, userId, userPayload);
-      }
-
-      if (hasAddressPayload) {
-        const updatedAddress = await userRepository.updateUserAddress(tx, userId, {
-          provinceId,
-          districtId,
-          wardCode,
-        });
-
-        if (!updatedAddress) {
-          throw new NotFoundError("Nguoi dung chua co dia chi de cap nhat!");
-        }
-      }
-
-      const latestUser = await userRepository.findBasicById(tx, userId);
-      if (!latestUser) {
-        throw new NotFoundError("Nguoi dung khong ton tai!");
-      }
-      return latestUser;
-    });
+    const result = await userRepository.update(prisma, userId, data);
 
     const userUpdated = toUserBasicResponse(result);
     await deleteUserCache(userUpdated.id);
     return userUpdated;
+  };
+
+  createUserAddress = async (userId: string, data: CreateUserAddressRequest) => {
+    const user = await userRepository.findUserDetailById(prisma, userId);
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
+
+    return await userRepository.createUserAddress(prisma, { ...data, userId });
+  };
+
+  updateUserAddress = async (
+    userId: string,
+    addressId: string,
+    data: UpdateUserAddressRequest,
+  ) => {
+    const address = await userRepository.findUserAddressById(prisma, addressId);
+    if (!address) throw new NotFoundError("Dia chi khong ton tai!");
+
+    if (address.userId !== userId) {
+      throw new ForbiddenError("Khong co quyen cap nhat dia chi nay!");
+    }
+
+    return await userRepository.updateUserAddress(prisma, addressId, data);
+  };
+
+  deleteUserAddress = async (userId: string, addressId: string) => {
+    const address = await userRepository.findUserAddressById(prisma, addressId);
+    if (!address) throw new NotFoundError("Dia chi khong ton tai!");
+    if (address.userId !== userId) {
+      throw new ForbiddenError("Khong co quyen cap nhat dia chi nay!");
+    }
+
+    if (!address) throw new NotFoundError("Dia chi khong ton tai!");
+
+    return await userRepository.deleteUserAddress(prisma, addressId);
   };
 
   updateUserStatus = async (

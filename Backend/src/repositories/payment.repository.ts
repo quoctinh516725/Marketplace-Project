@@ -44,16 +44,23 @@ class PaymentRepository {
     });
   };
 
+  findByCurrentPaymentId = async (client: PrismaType, paymentId: string) => {
+    return client.payment.findUnique({
+      where: { id: paymentId },
+    });
+  };
+
   updateStatus = async (
     client: PrismaType,
     paymentId: string,
     status: PaymentStatus,
   ) => {
     return await client.payment.update({
-      where: { id: paymentId },
+      where: { id: paymentId, status: PaymentStatus.PENDING },
       data: { status },
     });
   };
+
   update = async (
     client: PrismaType,
     paymentId: string,

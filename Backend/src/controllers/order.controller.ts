@@ -19,6 +19,57 @@ class OrderController {
       sendSuccess(res, data, "Tạo đơn hàng thành công!");
     },
   );
+
+  getMyOrders = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user?.userId as string;
+      const { page, limit } = req.pagination!;
+
+      const data = await orderService.getMyOrders(userId, {
+        page,
+        limit,
+        search: req.query.search as string,
+        status: req.query.status as string,
+      });
+
+      sendSuccess(res, data, "Lấy danh sách đơn hàng thành công!");
+    },
+  );
+
+  getSubOrderDetail = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const subOrderId = req.params.id as string;
+      const userId = req.user?.userId as string;
+
+      const data = await orderService.getSubOrderDetail(subOrderId, userId);
+      sendSuccess(res, data, "Lấy chi tiết đơn hàng thành công!");
+    },
+  );
+
+  cancelSubOrder = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user?.userId as string;
+      const subOrderId = req.params.id as string;
+      const { reason } = req.body;
+
+      const data = await orderService.cancelSubOrder(
+        userId,
+        subOrderId,
+        reason,
+      );
+      sendSuccess(res, data, data.message);
+    },
+  );
+
+  confirmReceived = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user?.userId as string;
+      const subOrderId = req.params.id as string;
+
+      const data = await orderService.confirmReceived(userId, subOrderId);
+      sendSuccess(res, data, data.message);
+    },
+  );
 }
 
 export default new OrderController();

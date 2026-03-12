@@ -12,13 +12,11 @@ new Worker(
     const payment = await paymentRepository.findById(prisma, paymentId);
 
     if (!payment) return;
-    if (payment.status === PaymentStatus.PENDING) {
-      await paymentRepository.updateStatus(
-        prisma,
-        paymentId,
-        PaymentStatus.EXPIRED,
-      );
-    }
+    await paymentRepository.updateStatus(
+      prisma,
+      paymentId,
+      PaymentStatus.EXPIRED,
+    );
   },
   { connection: redis, concurrency: 5 },
 );
