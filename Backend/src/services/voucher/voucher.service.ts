@@ -2,12 +2,24 @@ import {
   CreateVoucherRequestDto,
   toVoucherResponseDto,
   VoucherResponseDto,
+  UpdateVoucherRequestDto,
 } from "../../dtos";
-import { NotFoundError, ValidationError } from "../../error/AppError";
+import {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+} from "../../error/AppError";
 import voucherRepository, {
   CreateVoucherUsageData,
 } from "../../repositories/vourcher.repository";
-import { PrismaType, VoucherWithUserUsageResult } from "../../types";
+import {
+  InputAll,
+  PrismaType,
+  VoucherWithUserUsageResult,
+  selectedVoucher,
+} from "../../types";
+import shopRepository from "../../repositories/shop.repository";
+import { prisma } from "../../config/prisma";
 import { formatMoneyVND } from "../../utils/format";
 
 class VoucherService {
@@ -159,11 +171,6 @@ class VoucherService {
     };
   };
 
-  //   createVoucher = async (
-  //     data: CreateVoucherRequestDto,
-  //     shopId?: string,
-  //   ): Promise<VoucherResponseDto> => {};
-
   applyVoucher = async (client: PrismaType, data: CreateVoucherUsageData[]) => {
     // Increment UsageCount
     await Promise.all(
@@ -172,6 +179,186 @@ class VoucherService {
         voucherRepository.createVoucherUsage(client, v),
       ]),
     );
+  };
+
+  createVoucher = async (
+    data: CreateVoucherRequestDto,
+  ): Promise<VoucherResponseDto> => {
+    // Validate type and shopId
+    if (data.type === "SHOP") {
+      if (!data.shopId) {
+        throw new ValidationError(
+          "ID cửa hàng là bắt buộc cho loại voucher SHOP",
+        );
+      }
+      const shop = await shopRepository.findShopById(data.shopId);
+      if (!shop) {
+        throw new NotFoundError("Cửa hàng không tồn tại");
+      }
+      if (shop.status !== "ACTIVE") {
+        throw new ValidationError("Cửa hàng không hoạt động");
+      }
+    } else if (data.type === "PLATFORM") {
+      if (data.shopId) {
+        throw new ValidationError(
+          "Không được cung cấp ID cửa hàng cho loại voucher PLATFORM",
+        );
+      }
+    } else {
+      throw new ValidationError(
+        "Loại voucher không hợp lệ. Phải là PLATFORM hoặc SHOP",
+      );
+    }
+
+    // Validate discount
+    if (data.discountType === "PERCENT") {
+      if (data.discountValue <= 0 || data.discountValue > 100) {
+        throw new ValidationError(
+          "Giá trị giảm giá theo phần trăm phải từ 1 đến 100",
+        );
+      }
+    } else if (data.discountType === "FIXED") {
+      if (data.discountValue <= 0) {
+        throw new ValidationError("Giá trị giảm giá cố định phải lớn hơn 0");
+      }
+    } else {
+      throw new ValidationError(
+        "Loại giảm giá không hợp lệ. Phải là PERCENT hoặc FIXED",
+      );
+    }
+
+    // Validate dates
+    if (data.startDate >= data.endDate) {
+      throw new ValidationError("Ngày bắt đầu phải trước ngày kết thúc");
+    }
+
+    // Check unique code
+    const existing = await voucherRepository.findByCodeAndShopId(
+      data.code,
+      data.shopId,
+    );
+    if (existing) {
+      throw new ConflictError("Mã voucher đã tồn tại");
+    }
+
+    const voucher = await voucherRepository.createVoucher(prisma, data);
+    return toVoucherResponseDto(voucher);
+  };
+
+  updateVoucher = async (
+    id: string,
+    data: UpdateVoucherRequestDto,
+  ): Promise<VoucherResponseDto> => {
+    const existing = await voucherRepository.findById(prisma, id);
+    if (!existing) {
+      throw new NotFoundError("Voucher không tồn tại");
+    }
+
+    // Validate type and shopId if updating
+    if (data.type) {
+      if (data.type === "SHOP") {
+        if (!data.shopId && !existing.shopId) {
+          throw new ValidationError(
+            "ID cửa hàng là bắt buộc cho loại voucher SHOP",
+          );
+        }
+        if (data.shopId) {
+          const shop = await shopRepository.findShopById(data.shopId);
+          if (!shop) {
+            throw new NotFoundError("Cửa hàng không tồn tại");
+          }
+          if (shop.status !== "ACTIVE") {
+            throw new ValidationError("Cửa hàng không hoạt động");
+          }
+        }
+      } else if (data.type === "PLATFORM") {
+        if (data.shopId !== undefined) {
+          throw new ValidationError(
+            "Không được cung cấp ID cửa hàng cho loại voucher PLATFORM",
+          );
+        }
+      }
+    }
+
+    // Validate discount if updating
+    if (data.discountType || data.discountValue !== undefined) {
+      const discountType = data.discountType || existing.discountType;
+      const discountValue =
+        data.discountValue !== undefined
+          ? Number(data.discountValue)
+          : Number(existing.discountValue);
+
+      if (discountType === "PERCENT") {
+        if (discountValue <= 0 || discountValue > 100) {
+          throw new ValidationError(
+            "Giá trị giảm giá theo phần trăm phải từ 1 đến 100",
+          );
+        }
+      } else if (discountType === "FIXED") {
+        if (discountValue <= 0) {
+          throw new ValidationError("Giá trị giảm giá cố định phải lớn hơn 0");
+        }
+      }
+    }
+
+    // Validate dates if updating
+    const startDate = data.startDate || existing.startDate;
+    const endDate = data.endDate || existing.endDate;
+    if (startDate >= endDate) {
+      throw new ValidationError("Ngày bắt đầu phải trước ngày kết thúc");
+    }
+
+    // Check unique code if updating code
+    if (data.code && data.code !== existing.code) {
+      const shopId = data.shopId !== undefined ? data.shopId : existing.shopId;
+      const existingCode = await voucherRepository.findByCodeAndShopId(
+        data.code,
+        shopId,
+      );
+      if (existingCode) {
+        throw new ConflictError("Mã voucher đã tồn tại");
+      }
+    }
+
+    const voucher = await voucherRepository.updateVoucher(prisma, id, data);
+    return toVoucherResponseDto(voucher);
+  };
+
+  deleteVoucher = async (id: string): Promise<void> => {
+    const existing = await voucherRepository.findById(prisma, id);
+    if (!existing) {
+      throw new NotFoundError("Voucher không tồn tại");
+    }
+
+    // Check if voucher has been used
+    if (existing.usageCount > 0) {
+      throw new ValidationError("Không thể xóa voucher đã được sử dụng");
+    }
+
+    await voucherRepository.deleteVoucher(prisma, id);
+  };
+
+  getVoucherById = async (id: string): Promise<VoucherResponseDto> => {
+    const voucher = await voucherRepository.findById(prisma, id);
+    if (!voucher) {
+      throw new NotFoundError("Voucher không tồn tại");
+    }
+    return toVoucherResponseDto(voucher);
+  };
+
+  getVouchersByShop = async (shopId: string): Promise<VoucherResponseDto[]> => {
+    const vouchers = await voucherRepository.findByShopId(prisma, shopId);
+    return vouchers.map(toVoucherResponseDto);
+  };
+
+  getPlatformVouchers = async (): Promise<VoucherResponseDto[]> => {
+    const vouchers = await voucherRepository.findPlatformVoucher();
+    return vouchers.map(toVoucherResponseDto);
+  };
+
+  getAllVouchers = async (input: InputAll): Promise<VoucherResponseDto[]> => {
+    const allVouchers = await voucherRepository.findAll(input);
+    return allVouchers.map(toVoucherResponseDto);
   };
 }
 export default new VoucherService();

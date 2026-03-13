@@ -3,9 +3,12 @@ import app from "./app";
 import { env } from "./config/env";
 import { prisma } from "./config/prisma";
 import redis from "./config/redis";
+import { socketService } from "./socket";
 
 const PORT = env.PORT;
 const server = http.createServer(app);
+
+socketService.init(server);
 
 async function shutDown(): Promise<void> {
   console.log("Server has been shutdown...");

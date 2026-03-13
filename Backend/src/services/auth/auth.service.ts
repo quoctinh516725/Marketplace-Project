@@ -36,6 +36,7 @@ import {
   UserInfoDto,
 } from "../../dtos";
 import cartService from "../cart/cart.service";
+import notificationService from "../notification/notification.service";
 
 class AuthService {
   login = async (
@@ -240,7 +241,14 @@ class AuthService {
     if (guestId) {
       await cartService.mergeGuestCartToUserCart(guestId, user.id);
     }
-    
+
+    // Send Notification
+    await notificationService.createNotification(
+      user.id,
+      "Chào mừng bạn đến với Marketplace!",
+      "Tài khoản của bạn đã được tạo thành công. Chúc bạn có những trải nghiệm mua sắm tuyệt vời!",
+    );
+
     return {
       user: {
         id: user.id,

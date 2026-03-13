@@ -14,6 +14,7 @@ import { formatDate } from "../../utils/format";
 import orderRepository from "../../repositories/order.repository";
 import inventoryService from "../inventory/inventory.service";
 import { emailQueue } from "../../queues/email.queue";
+import notificationService from "../notification/notification.service";
 
 type GetPaymentReturn = {
   paymentId: string;
@@ -69,7 +70,7 @@ class PaymentService {
       });
 
       const subTotalIds = payment.allocations.map((a) => a.subOrderId);
-      
+
       // Update SubOrder Status
       await orderRepository.updateSubOrders(tx, subTotalIds, {
         status: OrderStatus.PAID,
@@ -85,6 +86,13 @@ class PaymentService {
       await inventoryService.decrementStock(
         tx,
         items.map((i) => ({ quantity: i.quantity, variantId: i.variantId })),
+      );
+
+      // Send Notification
+      await notificationService.createNotification(
+        payment.userId,
+        "Thanh toán thành công",
+        `Giao dịch thanh toán với mã ${payment.id} đã được thanh toán thành công!`,
       );
 
       return updatedPayment;
@@ -117,6 +125,13 @@ class PaymentService {
         transactionId,
         paidAt: new Date(),
       });
+
+      // Send Notification
+      await notificationService.createNotification(
+        payment.userId,
+        "Thanh toán thất bại",
+        `Giao dịch thanh toán với mã ${payment.id} đã thất bại!`,
+      );
 
       return updatedPayment;
     });

@@ -29,10 +29,16 @@ class RefundRepository {
           select: {
             id: true,
             shopId: true,
+            subOrderCode: true,
             orderItems: {
               select: {
                 variantId: true,
                 quantity: true,
+              },
+            },
+            masterOrder: {
+              select: {
+                userId: true,
               },
             },
           },

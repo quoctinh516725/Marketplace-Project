@@ -2,6 +2,7 @@ import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
 import { ValidationError } from "../error/AppError";
 import {
+  InputAll,
   PrismaType,
   selectedVoucher,
   selectedVoucherWithUserUsage,
@@ -119,6 +120,48 @@ class VoucherRepository {
       where: { id: voucherId },
       data: { usageCount: { decrement: 1 } },
       select: selectedVoucher,
+    });
+  };
+
+  updateVoucher = async (
+    client: PrismaType,
+    id: string,
+    data: UpdateVoucherData,
+  ): Promise<VoucherResult> => {
+    return await client.voucher.update({
+      where: { id },
+      data,
+      select: selectedVoucher,
+    });
+  };
+
+  deleteVoucher = async (client: PrismaType, id: string): Promise<void> => {
+    await client.voucher.delete({
+      where: { id },
+    });
+  };
+
+  findByCodeAndShopId = async (
+    code: string,
+    shopId?: string | null,
+  ): Promise<VoucherResult | null> => {
+    return await prisma.voucher.findFirst({
+      where: {
+        code,
+        shopId: shopId || null,
+      },
+      select: selectedVoucher,
+    });
+  };
+
+  findAll = async (input: InputAll): Promise<VoucherResult[]> => {
+    const { page, limit } = input;
+    const skip = (page - 1) * limit;
+    return await prisma.voucher.findMany({
+      select: selectedVoucher,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
     });
   };
 }

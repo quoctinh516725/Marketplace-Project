@@ -12,7 +12,7 @@ const PORT = env.PORT;
 const app = express();
 
 app.use(helmet());
-app.use(
+app.use(  
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
@@ -26,7 +26,7 @@ app.use(
       // Development
       callback(null, true);
     },
-    credentials: true,
+    credentials: true, // Cho phép gửi và nhận các thông tin xác thực như cookie, authentication
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),

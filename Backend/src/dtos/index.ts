@@ -6,3 +6,4 @@ export * from "./permission";
 export * from "./category";
 export * from "./voucher";
 export * from "./system";
+export * from "./notification";

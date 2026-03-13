@@ -18,6 +18,7 @@ import { InputAll } from "../../types";
 import { cacheAsync } from "../../utils/cache";
 import { deleteAuthUserCache } from "../auth/auth.cache";
 import { deleteUserCache } from "../user/user.cache";
+import notificationService from "../notification/notification.service";
 
 class ShopService {
   getAllShop = async (input: InputAll): Promise<ShopListResponseDto> => {
@@ -54,7 +55,7 @@ class ShopService {
       },
     );
   };
-  
+
   reviewRequestCreateShop = async (
     staffId: string,
     shopId: string,
@@ -83,7 +84,7 @@ class ShopService {
 
         const user = await userRepository.findUserDetailById(tx, shop.sellerId);
         if (!user) throw new NotFoundError("Người dùng không tồn tại!");
-        
+
         const userRoles = user.userRoles.map((r) => r.role.id);
         const allRoles = [...new Set([...userRoles, role?.id])];
 
@@ -101,6 +102,21 @@ class ShopService {
       cacheTag.invalidateTag("shop:list"),
       cacheTag.invalidateTag(`shop:${shop.id}`),
     ]);
+
+    // Send Notification
+    if (data.status === ShopStatus.ACTIVE) {
+      await notificationService.createNotification(
+        shop.sellerId,
+        "Cửa hàng đã được duyệt",
+        `Chúc mừng! Cửa hàng "${shop.name}" của bạn đã được duyệt thành công. Bạn có thể bắt đầu bán hàng ngay bây giờ.`,
+      );
+    } else if (data.status === ShopStatus.REJECTED) {
+      await notificationService.createNotification(
+        shop.sellerId,
+        "Yêu cầu tạo cửa hàng bị từ chối",
+        `Rất tiếc, yêu cầu tạo cửa hàng "${shop.name}" của bạn đã bị từ chối. Lý do: ${data.reason || "Không có lý do cụ thể"}.`,
+      );
+    }
 
     return toShopDetailResponse(updatedShop);
   };

@@ -28,6 +28,7 @@ import { RefundStatus } from "../../constants/refundStatus";
 import refundRepository from "../../repositories/refund.repository";
 import shopRepository from "../../repositories/shop.repository";
 import { ShopStatus } from "../../constants/shopStatus";
+import notificationService from "../notification/notification.service";
 
 type ShopVariantItem = {
   variantId: string;
@@ -423,6 +424,13 @@ class OrderService {
       { removeOnComplete: true, removeOnFail: true },
     );
 
+    // Send Notification
+    await notificationService.createNotification(
+      userId,
+      "Đơn hàng mới được tạo",
+      `Đơn hàng ${result.orderCode} đã được tạo thành công. Tổng số tiền: ${result.totalAmount.toLocaleString()} VND`,
+    );
+
     let paymentUrl: string | undefined = undefined;
     if (result.paymentMethod !== PaymentMethod.COD) {
       // Generate Payment_Url
@@ -504,12 +512,17 @@ class OrderService {
           })),
         );
 
-        
-
         // Update Sub Order
         await orderRepository.updateSubOrder(tx, subOrder.id, {
           status: OrderStatus.CANCELLED,
         });
+
+        // Send Notification
+        await notificationService.createNotification(
+          userId,
+          "Đơn hàng đã được hủy",
+          `Đơn hàng ${subOrder.subOrderCode} đã được hủy thành công!`,
+        );
 
         return {
           message: "Yêu cầu hủy đơn đã được xử lý thành công!",
@@ -524,6 +537,13 @@ class OrderService {
         status: RefundStatus.REQUESTED,
         paymentId: payment.id,
       });
+
+      // Send Notification
+      await notificationService.createNotification(
+        userId,
+        "Yêu cầu hủy đơn đã được gửi",
+        `Yêu cầu hủy đơn hàng ${subOrder.subOrderCode} đã được gửi thành công và đang chờ xử lý!`,
+      );
 
       return {
         message: "Yêu cầu hủy đơn đã được gửi thành công, đang chờ xử lý!",
@@ -583,6 +603,12 @@ class OrderService {
         "Giao dịch chưa thanh toán không thể cập nhật trạng thái đơn hàng!",
       );
     }
+    // Send Notification
+    await notificationService.createNotification(
+      subOrder.masterOrder.userId,
+      "Cập nhật trạng thái đơn hàng",
+      `Đơn hàng ${subOrder.subOrderCode} đã được cập nhật trạng thái thành ${status}!`,
+    );
 
     // Mô phỏng delivered sau 30s khi shop chuyển trạng thái sang shipping
     await orderQueue.add(
@@ -622,11 +648,16 @@ class OrderService {
         await refundRepository.updateRefund(tx, refundId, {
           status: RefundStatus.REJECTED,
         });
+        // Send Notification
+        await notificationService.createNotification(
+          refundRequest.subOrder.masterOrder.userId,
+          "Yêu cầu hủy đơn bị từ chối",
+          `Yêu cầu hủy đơn hàng ${refundRequest.subOrder.subOrderCode} đã bị từ chối!`,
+        );
         return;
       }
 
       // APPROVE
-
       await refundRepository.updateRefund(tx, refundId, {
         status: RefundStatus.APPROVED,
       });
@@ -654,6 +685,13 @@ class OrderService {
           })),
         );
       }
+
+      // Send Notification
+      await notificationService.createNotification(
+        refundRequest.subOrder.masterOrder.userId,
+        "Yêu cầu hủy đơn được chấp thuận",
+        `Yêu cầu hủy đơn hàng ${refundRequest.subOrder.subOrderCode} đã được chấp thuận!`,
+      );
     });
   };
 
@@ -668,6 +706,14 @@ class OrderService {
     await orderRepository.updateSubOrder(prisma, subOrderId, {
       status: OrderStatus.COMPLETED,
     });
+
+    // Send Notification
+    await notificationService.createNotification(
+      userId,
+      "Xác nhận nhận hàng thành công",
+      `Đơn hàng ${subOrder.subOrderCode} đã được xác nhận nhận hàng thành công!`,
+    );
+    
     return {
       message: "Xác nhận nhận hàng thành công!",
     };
