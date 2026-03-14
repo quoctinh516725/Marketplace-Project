@@ -5,6 +5,7 @@ import {
 } from "../middlewares/auth.middleware";
 import { upload } from "../config/multer";
 import shopController from "../controllers/seller/shop.controller";
+import analyticController from "../controllers/seller/analytic.controller";
 import { PermissionCode } from "../constants/permissionCode";
 import { validatePagination } from "../validations/public.validation";
 import productController from "../controllers/seller/product.controller";
@@ -127,7 +128,30 @@ orderRouter.post(
   orderController.handleRefundRequest,
 );
 
-
 router.use("/orders", orderRouter);
+
+const analyticRouter = express.Router();
+analyticRouter.get(
+  "/overview",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getOverview,
+);
+analyticRouter.get(
+  "/revenue",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getRevenueByTime,
+);
+analyticRouter.get(
+  "/top-products",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getTopProducts,
+);
+analyticRouter.get(
+  "/stats",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getOrderStats,
+);
+
+router.use("/analytics", analyticRouter);
 
 export default router;

@@ -7,3 +7,4 @@ export * from "./category";
 export * from "./voucher";
 export * from "./system";
 export * from "./notification";
+export * from "./review";

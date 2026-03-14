@@ -10,6 +10,7 @@ import paymentRoute from "./payment.route";
 import chatRoute from "./chat.route";
 import notificationRoute from "./notification.route";
 import voucherRoute from "./voucher.route";
+import reviewRoute from "./review.route";
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use("/payments", paymentRoute);
 router.use("/chat", chatRoute);
 router.use("/notifications", notificationRoute);
 router.use("/vouchers", voucherRoute);
+router.use("/reviews", reviewRoute);
 
 export default router;

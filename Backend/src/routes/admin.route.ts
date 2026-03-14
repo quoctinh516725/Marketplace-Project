@@ -105,6 +105,27 @@ systemRoutes.post("/settings", adminController.createSystemSetting);
 systemRoutes.patch("/settings/:key", adminController.updateSystemSetting);
 systemRoutes.delete("/settings/:key", adminController.deleteSystemSetting);
 
+systemRoutes.get(
+  "/analytics/overview",
+  requirePermission([PermissionCode.VIEW_SYSTEM_REPORTS]),
+  adminController.getOverview,
+);
+systemRoutes.get(
+  "/analytics/revenue",
+  requirePermission([PermissionCode.VIEW_SYSTEM_REPORTS]),
+  adminController.getRevenueByTime,
+);
+systemRoutes.get(
+  "/analytics/top-products",
+  requirePermission([PermissionCode.VIEW_SYSTEM_REPORTS]),
+  adminController.getTopProducts,
+);
+systemRoutes.get(
+  "/analytics/top-shops",
+  requirePermission([PermissionCode.VIEW_SYSTEM_REPORTS]),
+  adminController.getTopShops,
+);
+
 router.use("/", systemRoutes);
 
 export default router;

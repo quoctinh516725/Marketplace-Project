@@ -1,5 +1,6 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
+import { OrderStatus } from "../constants/orderStatus";
 import { InputAll, PrismaType } from "../types";
 import {
   BasicSubOrder,
@@ -87,10 +88,22 @@ class OrderRepository {
     });
   };
 
-
   findOrderItemBySubOrderIds = async (client: PrismaType, ids: string[]) => {
     return await client.orderItem.findMany({
       where: { subOrderId: { in: ids } },
+    });
+  };
+
+  findOrderItemById = async (id: string) => {
+    return await prisma.orderItem.findUnique({
+      where: { id },
+      include: {
+        subOrder: {
+          include: {
+            masterOrder: true,
+          },
+        },
+      },
     });
   };
 

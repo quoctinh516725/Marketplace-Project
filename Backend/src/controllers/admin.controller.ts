@@ -5,6 +5,7 @@ import {
 } from "../dtos";
 import { ValidationError } from "../error/AppError";
 import adminService from "../services/admin/admin.service";
+import analyticService from "../services/analytic/analytic.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/response";
 
@@ -62,6 +63,44 @@ class AdminController {
       );
 
       sendSuccess(res, setting, "Xoa cau hinh he thong thanh cong!");
+    },
+  );
+
+  // Analytics
+  getOverview = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const result = await analyticService.getAdminOverview();
+      sendSuccess(res, result, "Lấy thống kê hệ thống thành công!");
+    },
+  );
+
+  getRevenueByTime = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const range = (req.query.range as string) || "7d";
+      const result = await analyticService.getAdminRevenueByTime(range);
+      sendSuccess(
+        res,
+        result,
+        "Lấy dữ liệu doanh thu theo thời gian thành công!",
+      );
+    },
+  );
+
+  getTopProducts = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const result = await analyticService.getAdminTopProducts();
+      sendSuccess(res, result, "Lấy danh sách sản phẩm bán chạy thành công!");
+    },
+  );
+
+  getTopShops = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const result = await analyticService.getAdminTopShops();
+      sendSuccess(
+        res,
+        result,
+        "Lấy danh sách cửa hàng doanh thu cao thành công!",
+      );
     },
   );
 }
