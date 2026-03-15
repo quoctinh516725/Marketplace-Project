@@ -17,11 +17,12 @@ class RefreshTokenRepository {
     });
   };
   revokeRefreshToken = async (token: string): Promise<void> => {
-    await prisma.refreshToken.updateMany({
+    await prisma.refreshToken.update({
       where: { token, revoked: false },
       data: { revoked: true },
     });
   };
+
   create = async (
     client: PrismaType,
     data: CreateRefreshTokenData,

@@ -318,6 +318,23 @@ class AuthService {
       shopId: shop?.id,
     });
 
+    const newRefreshToken = generateRefreshToken(user.id);
+    // Create new RefreshToken DB
+    const decoded = jwt.decode(newRefreshToken) as JwtPayload;
+
+    await prisma.$transaction(async (tx) => {
+      if (!decoded || !decoded.exp) {
+        throw new ValidationError("Không thể decode refresh token!");
+      }
+      // Revoke current RefreshToken
+      await refreshTokenRepository.revokeRefreshToken(refreshToken);
+
+      await refreshTokenRepository.create(prisma, {
+        userId: user.id,
+        token: newRefreshToken,
+        expiredAt: new Date(decoded.exp * 1000),
+      });
+    });
     const ttl = getTokenRemainingTime(accessToken);
 
     //Update userCache
@@ -331,7 +348,7 @@ class AuthService {
       },
       ttl,
     );
-    return { accessToken };
+    return { accessToken, refreshToken: newRefreshToken };
   };
   logout = async (
     userId: string,
