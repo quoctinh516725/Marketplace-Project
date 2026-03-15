@@ -10,11 +10,10 @@ class NotificationController {
       const userId = req.user?.userId!;
       const { page, limit } = req.pagination!;
 
-      const result = await notificationService.getNotifications(
-        userId,
+      const result = await notificationService.getNotifications(userId, {
         page,
         limit,
-      );
+      });
       sendSuccess(res, result, "Lấy danh sách thông báo thành công!");
     },
   );

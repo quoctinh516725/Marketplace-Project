@@ -6,6 +6,7 @@ import {
 } from "../../dtos/notification/notification.response.dto";
 import { toNotificationListResponse } from "../../dtos/notification/mapper.dto";
 import { socketService } from "../../socket";
+import { InputAll } from "../../types";
 
 class NotificationService {
   createNotification = async (
@@ -28,21 +29,20 @@ class NotificationService {
 
   getNotifications = async (
     userId: string,
-    page: number,
-    limit: number,
+    input: InputAll,
   ): Promise<NotificationListResponseDto> => {
     const [notifications, total] = await Promise.all([
-      notificationRepository.findByUserIdPaginated(userId, page, limit),
+      notificationRepository.findByNotificationUserId(userId, input.page, input.limit),
       notificationRepository.countByUserId(userId),
     ]);
 
-    const data = notifications.map(toNotificationListResponse);
+    const data = notifications.data.map(toNotificationListResponse);
 
     return {
       data,
       pagination: {
-        page,
-        limit,
+        page: input.page,
+        limit: input.limit,
         total,
       },
     };

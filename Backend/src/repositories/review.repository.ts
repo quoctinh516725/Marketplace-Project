@@ -1,5 +1,6 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
+import { selectedReview } from "../types/review.type";
 
 export interface CreateReviewData {
   userId: string;
@@ -106,62 +107,14 @@ class ReviewRepository {
   findById = async (id: string) => {
     return await prisma.productReview.findUnique({
       where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatarUrl: true,
-          },
-        },
-        product: {
-          select: {
-            id: true,
-            name: true,
-            thumbnailUrl: true,
-          },
-        },
-        orderItem: {
-          select: {
-            id: true,
-            productName: true,
-            variantName: true,
-            imageUrl: true,
-          },
-        },
-      },
+      select: selectedReview,
     });
   };
 
   create = async (data: CreateReviewData) => {
     return await prisma.productReview.create({
       data,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatarUrl: true,
-          },
-        },
-        product: {
-          select: {
-            id: true,
-            name: true,
-            thumbnailUrl: true,
-          },
-        },
-        orderItem: {
-          select: {
-            id: true,
-            productName: true,
-            variantName: true,
-            imageUrl: true,
-          },
-        },
-      },
+      select: selectedReview,
     });
   };
 
@@ -169,31 +122,7 @@ class ReviewRepository {
     return await prisma.productReview.update({
       where: { id },
       data,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatarUrl: true,
-          },
-        },
-        product: {
-          select: {
-            id: true,
-            name: true,
-            thumbnailUrl: true,
-          },
-        },
-        orderItem: {
-          select: {
-            id: true,
-            productName: true,
-            variantName: true,
-            imageUrl: true,
-          },
-        },
-      },
+      select: selectedReview,
     });
   };
 

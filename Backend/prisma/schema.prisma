@@ -35,7 +35,9 @@ model User {
   conversations    ConversationParticipant[]
   notifications    Notification[]
   productReviews   ProductReview[]
+  voucherUsages    VoucherUsage[]
 
+  @@index([status, createdAt])
   @@map("users")
 }
 
@@ -109,6 +111,7 @@ model RolePermission {
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
+  @@index([permissionId])
   @@map("role_permissions")
 }
 
@@ -135,6 +138,7 @@ model RefreshToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, revoked])
   @@map("refresh_tokens")
 }
 
@@ -166,6 +170,7 @@ model Shop {
   subOrders SubOrder[]
   vouchers Voucher[]
 
+  @@index([status, createdAt])
   @@map("shops")
 }
 
@@ -206,7 +211,6 @@ model Category {
 model Tag {
   id   String @id @default(uuid())
   name String
-
   productTags ProductTag[]
 
   @@map("tags")
@@ -219,6 +223,8 @@ model ProductTag {
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([tagId, productId])
+  @@map("product_tags")
 }
 
 model Product {
@@ -238,7 +244,7 @@ model Product {
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt  @default(now()) @map("updated_at")
-  deletedAt DateTime? @map("delete_at")
+  deletedAt DateTime? @map("deleted_at")
 
   shop  Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   brand Brand? @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -252,6 +258,9 @@ model Product {
   orderItem   OrderItem[]
   productReviews ProductReview[]
 
+  @@index([shopId, deletedAt ,name])
+  @@index([status,deletedAt, name])
+
   @@map("products")
 }
 
@@ -262,6 +271,9 @@ model ProductCategory {
 
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([categoryId, productId])
+  @@index([productId])
+  @@map("product_categories")
 }
 
 model ProductImage {
@@ -273,6 +285,7 @@ model ProductImage {
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([productId, sortOrder])
   @@map("product_images")
 }
 
@@ -294,8 +307,28 @@ model ProductVariant {
   product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   productAttributes ProductAttribute[]
   cartItem          CartItem[]
+  orderItem         OrderItem[]
 
+  @@index([productId])
   @@map("product_variants")
+}
+
+
+model ProductReview {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  productId   String   @map("product_id")
+  orderItemId String   @unique @map("order_item_id")
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@map("product_reviews")
 }
 
 model Attribute {
@@ -323,6 +356,7 @@ model AttributeValue {
   productAttributes ProductAttribute[]
   attribute         Attribute          @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
+  @@index([attributeId])
   @@map("attribute_values")
 }
 
@@ -338,6 +372,7 @@ model ProductAttribute {
   attribute      Attribute       @relation(fields: [attributeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   attributeValue AttributeValue? @relation(fields: [attributeValueId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([productVariantId])
   @@map("product_attributes")
 }
 
@@ -351,6 +386,7 @@ model CategoryAttribute {
   category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
+  @@index([categoryId, attributeId])
   @@map("category_attribute")
 }
 
@@ -363,6 +399,7 @@ model Cart {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   cartItems CartItem[]
 
+  @@index([userId])
   @@map("cart")
 }
 
@@ -411,6 +448,8 @@ model MasterOrder {
   subOrders SubOrder[]
   payments Payment[]
 
+  @@index([userId, status, createdAt])
+
   @@map("master_orders")
 }
 
@@ -443,7 +482,8 @@ model SubOrder {
   paymentAllocations PaymentAllocation[]
   refunds            Refund[]
 
-  @@index([shopId, createdAt])
+  @@index([shopId,status, createdAt])
+  @@index([masterOrderId])
   @@map("sub_orders")
 }
 
@@ -466,7 +506,11 @@ model OrderItem {
 
   subOrder SubOrder @relation(fields: [subOrderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product  Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variant  ProductVariant @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productReview ProductReview?
+
+  @@index([subOrderId])
+  @@index([productId])
 
   @@map("order_items")
 }
@@ -492,6 +536,7 @@ model Payment {
   refunds Refund[]
 
   @@index([paidAt])
+  @@index([masterOrderId])
   @@map("payments")
 }
 
@@ -527,7 +572,8 @@ model Refund {
   subOrder SubOrder @relation(fields: [subOrderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([subOrderId, createdAt])
+  @@index([subOrderId])
+  @@index([paymentId])
   @@map("refunds")
 }
 
@@ -560,7 +606,9 @@ model Voucher {
   shop   Shop?          @relation(fields: [shopId], references: [id], onDelete: Cascade)
   usages VoucherUsage[]
 
-@@unique([code,shopId])
+  @@unique([code,shopId])
+  @@index([shopId, createdAt])
+  @@index([type, createdAt])
   @@map("vouchers")
 }
 
@@ -573,7 +621,9 @@ model VoucherUsage {
   createdAt DateTime @default(now()) @map("created_at")
 
   voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([userId, voucherId])
   @@map("voucher_usages")
 }
 
@@ -611,6 +661,9 @@ model ConversationParticipant {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([conversationId])
+
   @@map("conversation_participants")
 }
 
@@ -626,6 +679,8 @@ model Message {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
+  @@index([conversationId, createdAt])
+  @@index([conversationId, isRead])
   @@map("messages")
 }
 
@@ -638,22 +693,7 @@ model Notification {
   createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, isRead])
 
   @@map("notifications")
-}
-
-model ProductReview {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  productId   String   @map("product_id")
-  orderItemId String   @unique @map("order_item_id")
-  rating      Int
-  comment     String?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  user      User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-
-  @@map("product_reviews")
 }

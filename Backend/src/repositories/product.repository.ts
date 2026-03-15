@@ -127,7 +127,7 @@ class ProductRepository {
     const take = limit;
     const where: Prisma.ProductCategoryWhereInput = {
       categoryId,
-      product: {
+      product: {  
         ...(search && { name: { contains: search } }),
         ...(status && { status }),
         deletedAt: null,
@@ -138,6 +138,7 @@ class ProductRepository {
       prisma.productCategory.findMany({
         where,
         select: { product: { select: selectProductBasic } },
+        orderBy: { product: { name: "asc" } },
         skip,
         take,
       }),
@@ -233,11 +234,10 @@ class ProductRepository {
   updateProduct = async (
     client: PrismaType,
     id: string,
-    shopId: string,
     data: Prisma.ProductUpdateManyMutationInput,
   ): Promise<ProductBasicResult> => {
     return await client.product.update({
-      where: { id, shopId },
+      where: { id },
       data,
       select: selectProductDetail,
     });

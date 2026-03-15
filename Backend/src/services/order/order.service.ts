@@ -9,7 +9,6 @@ import { randomInt } from "node:crypto";
 import productRepository from "../../repositories/product.repository";
 import inventoryService from "../inventory/inventory.service";
 import orderRepository from "../../repositories/order.repository";
-import voucherService from "../voucher/voucher.service";
 import { VoucherResponseDto } from "../../dtos";
 import adminService from "../admin/admin.service";
 import { System } from "../../constants/system/systemKey";
@@ -29,6 +28,7 @@ import refundRepository from "../../repositories/refund.repository";
 import shopRepository from "../../repositories/shop.repository";
 import { ShopStatus } from "../../constants/shopStatus";
 import notificationService from "../notification/notification.service";
+import voucherService from "../voucher/voucher.service";
 
 type ShopVariantItem = {
   variantId: string;

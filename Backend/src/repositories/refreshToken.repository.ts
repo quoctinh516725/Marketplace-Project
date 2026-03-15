@@ -29,6 +29,7 @@ class RefreshTokenRepository {
   ): Promise<void> => {
     await client.refreshToken.create({ data });
   };
+  
   revokeAllRefreshToken = async (
     client: PrismaType,
     userId: string,

@@ -123,7 +123,10 @@ class UserService {
     return userUpdated;
   };
 
-  createUserAddress = async (userId: string, data: CreateUserAddressRequest) => {
+  createUserAddress = async (
+    userId: string,
+    data: CreateUserAddressRequest,
+  ) => {
     const user = await userRepository.findUserDetailById(prisma, userId);
     if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
@@ -135,7 +138,10 @@ class UserService {
     addressId: string,
     data: UpdateUserAddressRequest,
   ) => {
-    const address = await userRepository.findUserAddressById(prisma, addressId);
+    const address = await userRepository.findUserAddressByAddressId(
+      prisma,
+      addressId,
+    );
     if (!address) throw new NotFoundError("Dia chi khong ton tai!");
 
     if (address.userId !== userId) {
@@ -146,7 +152,10 @@ class UserService {
   };
 
   deleteUserAddress = async (userId: string, addressId: string) => {
-    const address = await userRepository.findUserAddressById(prisma, addressId);
+    const address = await userRepository.findUserAddressByAddressId(
+      prisma,
+      addressId,
+    );
     if (!address) throw new NotFoundError("Dia chi khong ton tai!");
     if (address.userId !== userId) {
       throw new ForbiddenError("Khong co quyen cap nhat dia chi nay!");

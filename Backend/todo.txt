@@ -1,6 +1,4 @@
 index/unique
 race condition/ concurrency
-Oathent2
-Testing
-swager
+Oauth2
 docker

@@ -1,15 +1,12 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
-import { OrderStatus } from "../constants/orderStatus";
 import { InputAll, PrismaType } from "../types";
 import {
-  BasicSubOrder,
   DetailOrder,
   DetailSubOrder,
   DetailSubOrderList,
   OrderListItem,
   selectedOrderDetail,
-  selectedSubOrderBasic,
   selectedSubOrderDetail,
 } from "../types/order.type";
 
@@ -36,10 +33,10 @@ class OrderRepository {
 
   updateOrder = async (
     client: PrismaType,
-    orderId: string,
+    id: string,
     data: UpdateOrderData,
   ) => {
-    return await client.masterOrder.update({ where: { id: orderId }, data });
+    return await client.masterOrder.update({ where: { id }, data });
   };
 
   createSubOrder = async (client: PrismaType, data: CreateSubOrderData) => {

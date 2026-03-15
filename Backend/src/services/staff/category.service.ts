@@ -285,7 +285,7 @@ class CategoryService {
     return toCategoryAttributeResponse(deleted);
   };
   getCategoryTree = async (): Promise<CategoryTreeResponseDto[]> => {
-    const categories = await categoryRepository.findAll();
+    const categories = await categoryRepository.findAllForTree();
 
     return toCategoryTreeResponse(categories,true);
   };

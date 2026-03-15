@@ -1,13 +1,9 @@
-import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
-
-export interface NotificationListResult {
-  id: string;
-  title: string;
-  content: string;
-  isRead: boolean;
-  createdAt: Date;
-}
+import {
+  NotificationListResult,
+  NotificationResult,
+  selectedNotification,
+} from "../types/notification";
 
 export interface CreateNotificationData {
   userId: string;
@@ -22,25 +18,24 @@ export interface UpdateNotificationData {
 }
 
 class NotificationRepository {
-  findByUserIdPaginated = async (
+  findByNotificationUserId = async (
     userId: string,
     page: number,
     limit: number,
-  ): Promise<NotificationListResult[]> => {
+  ): Promise<NotificationListResult> => {
     const skip = (page - 1) * limit;
-    return prisma.notification.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        isRead: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    });
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId },
+        select: selectedNotification,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.notification.count({ where: { userId } }),
+    ]);
+
+    return { data: notifications, total };
   };
 
   countByUserId = async (userId: string): Promise<number> => {
@@ -58,16 +53,10 @@ class NotificationRepository {
   findByIdAndUserId = async (
     id: string,
     userId: string,
-  ): Promise<NotificationListResult | null> => {
-    return prisma.notification.findFirst({
+  ): Promise<NotificationResult | null> => {
+    return await prisma.notification.findFirst({
       where: { id, userId },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        isRead: true,
-        createdAt: true,
-      },
+      select: selectedNotification,
     });
   };
 
@@ -93,19 +82,12 @@ class NotificationRepository {
 
   create = async (
     data: CreateNotificationData,
-  ): Promise<NotificationListResult> => {
+  ): Promise<NotificationResult> => {
     return prisma.notification.create({
       data,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        isRead: true,
-        createdAt: true,
-      },
+      select: selectedNotification,
     });
   };
 }
 
-const notificationRepository = new NotificationRepository();
-export default notificationRepository;
+export default new NotificationRepository();

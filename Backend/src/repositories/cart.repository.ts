@@ -27,12 +27,14 @@ class CartRepository {
       });
     });
   };
+
   getCart = async (id: string): Promise<CartDetailResult | null> => {
     return await prisma.cart.findUnique({
       where: { userId: id },
       select: selectCartDetail,
     });
   };
+  
   clearCart = async (id: string) => {
     return await prisma.cart.deleteMany({ where: { userId: id } });
   };

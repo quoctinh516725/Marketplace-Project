@@ -74,7 +74,7 @@ class CategoryService {
   };
 
   getCategoryTree = async (): Promise<CategoryTreeResponseDto[]> => {
-    const categories = await categoryRepository.findAll({
+    const categories = await categoryRepository.findAllForTree({
       isActive: true,
     });
     return toCategoryTreeResponse(categories, false);

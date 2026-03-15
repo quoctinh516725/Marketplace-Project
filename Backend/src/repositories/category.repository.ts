@@ -174,7 +174,8 @@ class CategoryRepository {
       select: selectCategoryAttribute,
     });
   };
-  findAll = async (data?: {
+  
+  findAllForTree = async (data?: {
     isActive: boolean;
   }): Promise<CategoryBasicResult[]> => {
     return prisma.category.findMany({

@@ -161,7 +161,7 @@ class UserRepository {
     });
   };
 
-  findUserAddressById = async (
+  findUserAddressByAddressId = async (
     client: PrismaType,
     addressId: string,
   ): Promise<UserAddress | null> => {

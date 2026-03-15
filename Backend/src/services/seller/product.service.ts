@@ -401,12 +401,7 @@ class ProductService {
 
     let productUpdated: ProductBasicResponseDto | null = null;
     try {
-      const result = await productRepository.updateProduct(
-        prisma,
-        id,
-        shopId,
-        data,
-      );
+      const result = await productRepository.updateProduct(prisma, id, data);
 
       productUpdated = toProductPublicResponse(result);
     } catch (error) {
@@ -419,7 +414,7 @@ class ProductService {
 
     await this.invalidateProductCache(shopId, product.id);
 
-    // Update doc
+    // Update Search Index
     const doc: any = {};
 
     if (data.name !== undefined) doc.name = data.name;
@@ -513,19 +508,12 @@ class ProductService {
     await this.validateShopProduct(shopId, productId);
 
     const productDeleted = await prisma.$transaction(async (tx) => {
-      await productRepository.deleteProduct(tx, productId);
-
       // Update Shop Total Product
       await shopRepository.update(tx, shopId, {
         totalProducts: { decrement: 1 },
       });
 
-      // Update Product Status
-      return await productRepository.updadeStatus(
-        tx,
-        productId,
-        ProductStatus.DELETED,
-      );
+      return await productRepository.deleteProduct(tx, productId);
     });
 
     await this.invalidateProductCache(shopId, productId);
