@@ -1,0 +1,111 @@
+paths:
+  /reviews:
+    post:
+      summary: Create product review
+      tags:
+        - Reviews
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewCreateRequest"
+      responses:
+        "200":
+          description: Review created successfully
+        "400":
+          description: Invalid request or already reviewed
+  /reviews/{id}:
+    put:
+      summary: Update review
+      tags:
+        - Reviews
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewUpdateRequest"
+      responses:
+        "200":
+          description: Review updated successfully
+        "403":
+          description: Not authorized to update this review
+        "404":
+          description: Review not found
+    delete:
+      summary: Delete review (User or Admin)
+      tags:
+        - Reviews
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Review deleted successfully
+        "403":
+          description: Not authorized to delete this review
+        "404":
+          description: Review not found
+    get:
+      summary: Get review by ID
+      tags:
+        - Reviews
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewInfo"
+        "404":
+          description: Review not found
+  /reviews/products/{productId}:
+    get:
+      summary: Get product reviews
+      tags:
+        - Reviews
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewListResponse"

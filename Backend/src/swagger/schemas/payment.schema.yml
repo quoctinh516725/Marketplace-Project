@@ -1,0 +1,20 @@
+components:
+  schemas:
+    PaymentUrlResponse:
+      type: object
+      properties:
+        payment_url:
+          type: string
+          example: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    PaymentReturnResponse:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          example: "pay123"
+        responseCode:
+          type: string
+          example: "00"
+        transactionStatus:
+          type: string
+          example: "SUCCESS"

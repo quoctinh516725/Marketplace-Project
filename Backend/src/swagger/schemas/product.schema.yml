@@ -1,0 +1,172 @@
+components:
+  schemas:
+    ProductBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "prod123"
+        name:
+          type: string
+          example: "iPhone 15 Pro"
+        code:
+          type: string
+          example: "IP15P"
+        slug:
+          type: string
+          example: "iphone-15-pro"
+        description:
+          type: string
+          nullable: true
+          example: "Latest iPhone model"
+        thumbnailUrl:
+          type: string
+          example: "https://cdn.example.com/thumbnail.jpg"
+        originalPrice:
+          type: number
+          nullable: true
+          example: 999.99
+        soldCount:
+          type: integer
+          example: 100
+        rating:
+          type: number
+          nullable: true
+          example: 4.5
+        status:
+          type: string
+          example: "ACTIVE"
+    ProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/ProductBasic"
+        - type: object
+          properties:
+            shop:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "shop123"
+                name:
+                  type: string
+                  example: "Apple Store"
+            brand:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                  example: "brand123"
+                name:
+                  type: string
+                  example: "Apple"
+                logoUrl:
+                  type: string
+                  nullable: true
+                  example: "https://cdn.example.com/logo.png"
+            images:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "img123"
+                  imageUrl:
+                    type: string
+                    example: "https://cdn.example.com/image.jpg"
+            variants:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "var123"
+                  sku:
+                    type: string
+                    example: "IP15P-128GB"
+                  variantName:
+                    type: string
+                    nullable: true
+                    example: "128GB Black"
+                  imageUrl:
+                    type: string
+                    nullable: true
+                    example: "https://cdn.example.com/variant.jpg"
+                  price:
+                    type: number
+                    example: 999.99
+                  stock:
+                    type: integer
+                    example: 50
+                  weight:
+                    type: number
+                    nullable: true
+                    example: 0.2
+                  status:
+                    type: string
+                    example: "ACTIVE"
+                  attributes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        attributeId:
+                          type: string
+                          example: "attr123"
+                        code:
+                          type: string
+                          example: "color"
+                        valueId:
+                          type: string
+                          nullable: true
+                          example: "val123"
+                        value:
+                          type: string
+                          nullable: true
+                          example: "Black"
+            tags:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "tag123"
+                  name:
+                    type: string
+                    example: "New"
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "cat123"
+                  name:
+                    type: string
+                    example: "Electronics"
+    ProductListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductBasic"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10

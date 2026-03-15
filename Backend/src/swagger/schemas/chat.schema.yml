@@ -1,0 +1,117 @@
+components:
+  schemas:
+    ConversationInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "conv123"
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "user123"
+              username:
+                type: string
+                example: "johndoe"
+              avatarUrl:
+                type: string
+                nullable: true
+                example: "https://cdn.example.com/avatar.jpg"
+        lastMessage:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              example: "msg123"
+            content:
+              type: string
+              example: "Hello, how can I help you?"
+            senderId:
+              type: string
+              example: "user456"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2024-03-15T10:00:00Z"
+        unreadCount:
+          type: integer
+          example: 2
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T09:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+    MessageInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "msg123"
+        content:
+          type: string
+          example: "Thank you for your order!"
+        sender:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "user123"
+            username:
+              type: string
+              example: "seller1"
+            avatarUrl:
+              type: string
+              nullable: true
+              example: "https://cdn.example.com/avatar.jpg"
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+    MessageSendRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: "I have a question about my order"
+    ConversationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationInfo"
+    MessageListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 5

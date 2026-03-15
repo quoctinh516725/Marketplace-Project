@@ -1,0 +1,87 @@
+components:
+  schemas:
+    RoleInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "role123"
+        code:
+          type: string
+          example: "ADMIN"
+        name:
+          type: string
+          example: "Administrator"
+        description:
+          type: string
+          nullable: true
+          example: "Full system access"
+        isActive:
+          type: boolean
+          example: true
+        permissions:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "perm123"
+              code:
+                type: string
+                example: "USER_MANAGE"
+              name:
+                type: string
+                example: "User Management"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+    RoleCreateRequest:
+      type: object
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          example: "MODERATOR"
+        name:
+          type: string
+          example: "Moderator"
+        description:
+          type: string
+          example: "Content moderation role"
+    RoleUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Role Name"
+        description:
+          type: string
+          example: "Updated description"
+        isActive:
+          type: boolean
+          example: true
+    RoleAssignRequest:
+      type: object
+      required:
+        - roleCodes
+      properties:
+        roleCodes:
+          type: array
+          items:
+            type: string
+          example: ["ADMIN", "MODERATOR"]
+    RoleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleInfo"

@@ -1,0 +1,217 @@
+paths:
+  /public/categories:
+    get:
+      summary: Get all categories
+      tags:
+        - Categories
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryListResponse"
+    post:
+      summary: Create category (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreateRequest"
+      responses:
+        "200":
+          description: Category created successfully
+  /public/categories/tree:
+    get:
+      summary: Get category tree
+      tags:
+        - Categories
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryTreeResponse"
+  /public/categories/{id}:
+    get:
+      summary: Get category by ID
+      tags:
+        - Categories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryInfo"
+    put:
+      summary: Update category (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdateRequest"
+      responses:
+        "200":
+          description: Category updated successfully
+    delete:
+      summary: Delete category (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Category deleted successfully
+  /public/categories/{id}/status:
+    patch:
+      summary: Update category status (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryStatusUpdateRequest"
+      responses:
+        "200":
+          description: Status updated successfully
+  /public/categories/{id}/attributes:
+    get:
+      summary: Get category attributes
+      tags:
+        - Categories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    code:
+                      type: string
+                    type:
+                      type: string
+                    values:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          value:
+                            type: string
+    post:
+      summary: Create category attribute (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryAttributeCreateRequest"
+      responses:
+        "200":
+          description: Attribute created successfully
+  /public/categories/{id}/attributes/{attributeId}:
+    delete:
+      summary: Delete category attribute (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attributeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attribute deleted successfully

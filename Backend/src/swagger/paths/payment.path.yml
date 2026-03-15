@@ -1,0 +1,138 @@
+paths:
+  /orders/{orderId}/payments:
+    post:
+      summary: Get payment URL
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        "200":
+          description: Payment URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentUrlResponse"
+        "404":
+          description: Order not found
+  /payments/payment-return:
+    get:
+      summary: Handle payment return from VNPay
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: vnp_Amount
+          in: query
+          schema:
+            type: string
+        - name: vnp_BankCode
+          in: query
+          schema:
+            type: string
+        - name: vnp_BankTranNo
+          in: query
+          schema:
+            type: string
+        - name: vnp_CardType
+          in: query
+          schema:
+            type: string
+        - name: vnp_OrderInfo
+          in: query
+          schema:
+            type: string
+        - name: vnp_PayDate
+          in: query
+          schema:
+            type: string
+        - name: vnp_ResponseCode
+          in: query
+          schema:
+            type: string
+        - name: vnp_TmnCode
+          in: query
+          schema:
+            type: string
+        - name: vnp_TransactionNo
+          in: query
+          schema:
+            type: string
+        - name: vnp_TxnRef
+          in: query
+          schema:
+            type: string
+        - name: vnp_SecureHash
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentReturnResponse"
+  /payments/vnpay-ipn:
+    get:
+      summary: VNPay IPN (Instant Payment Notification)
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: vnp_Amount
+          in: query
+          schema:
+            type: string
+        - name: vnp_BankCode
+          in: query
+          schema:
+            type: string
+        - name: vnp_BankTranNo
+          in: query
+          schema:
+            type: string
+        - name: vnp_CardType
+          in: query
+          schema:
+            type: string
+        - name: vnp_OrderInfo
+          in: query
+          schema:
+            type: string
+        - name: vnp_PayDate
+          in: query
+          schema:
+            type: string
+        - name: vnp_ResponseCode
+          in: query
+          schema:
+            type: string
+        - name: vnp_TmnCode
+          in: query
+          schema:
+            type: string
+        - name: vnp_TransactionNo
+          in: query
+          schema:
+            type: string
+        - name: vnp_TxnRef
+          in: query
+          schema:
+            type: string
+        - name: vnp_SecureHash
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: IPN processed successfully

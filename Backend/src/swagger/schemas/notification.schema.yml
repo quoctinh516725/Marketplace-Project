@@ -1,0 +1,59 @@
+components:
+  schemas:
+    NotificationInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "notif123"
+        title:
+          type: string
+          example: "Order Confirmed"
+        message:
+          type: string
+          example: "Your order #12345 has been confirmed"
+        type:
+          type: string
+          enum: [ORDER, SYSTEM, PROMOTION, CHAT]
+          example: "ORDER"
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+        data:
+          type: object
+          nullable: true
+          example:
+            orderId: "ord123"
+            amount: 199.99
+    NotificationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5
+    NotificationCountResponse:
+      type: object
+      properties:
+        unreadCount:
+          type: integer
+          example: 5

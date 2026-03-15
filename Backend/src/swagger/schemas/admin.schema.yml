@@ -1,0 +1,124 @@
+components:
+  schemas:
+    SystemSetting:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "MAINTENANCE_MODE"
+        value:
+          type: string
+          example: "false"
+        description:
+          type: string
+          nullable: true
+          example: "Enable maintenance mode"
+        type:
+          type: string
+          enum: [STRING, NUMBER, BOOLEAN, JSON]
+          example: "BOOLEAN"
+        isPublic:
+          type: boolean
+          example: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+    SystemSettingCreateRequest:
+      type: object
+      required:
+        - key
+        - value
+        - type
+      properties:
+        key:
+          type: string
+          example: "MAX_UPLOAD_SIZE"
+        value:
+          type: string
+          example: "10485760"
+        description:
+          type: string
+          example: "Maximum file upload size in bytes"
+        type:
+          type: string
+          enum: [STRING, NUMBER, BOOLEAN, JSON]
+          example: "NUMBER"
+        isPublic:
+          type: boolean
+          example: true
+    SystemSettingUpdateRequest:
+      type: object
+      properties:
+        value:
+          type: string
+          example: "20971520"
+        description:
+          type: string
+          example: "Updated maximum file upload size"
+        isPublic:
+          type: boolean
+          example: true
+    AdminOverviewResponse:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          example: 1000
+        totalShops:
+          type: integer
+          example: 50
+        totalOrders:
+          type: integer
+          example: 5000
+        totalRevenue:
+          type: number
+          example: 150000.00
+        recentOrders:
+          type: integer
+          example: 150
+        recentRevenue:
+          type: number
+          example: 4500.00
+    RevenueDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          example: "2024-03-15"
+        revenue:
+          type: number
+          example: 2500.50
+        orders:
+          type: integer
+          example: 25
+    TopProduct:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "prod123"
+        productName:
+          type: string
+          example: "iPhone 15 Pro"
+        totalSold:
+          type: integer
+          example: 150
+        totalRevenue:
+          type: number
+          example: 299850.00
+    TopShop:
+      type: object
+      properties:
+        shopId:
+          type: string
+          example: "shop123"
+        shopName:
+          type: string
+          example: "Apple Store"
+        totalOrders:
+          type: integer
+          example: 500
+        totalRevenue:
+          type: number
+          example: 100000.00

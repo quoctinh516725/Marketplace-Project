@@ -1,0 +1,93 @@
+components:
+  schemas:
+    ShopInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "shop123"
+        name:
+          type: string
+          example: "Apple Store"
+        slug:
+          type: string
+          example: "apple-store"
+        description:
+          type: string
+          nullable: true
+          example: "Official Apple Store"
+        logoUrl:
+          type: string
+          nullable: true
+          example: "https://cdn.example.com/logo.png"
+        backgroundUrl:
+          type: string
+          nullable: true
+          example: "https://cdn.example.com/background.jpg"
+        status:
+          type: string
+          example: "ACTIVE"
+        owner:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "user123"
+            username:
+              type: string
+              example: "seller1"
+            email:
+              type: string
+              example: "seller@example.com"
+    ShopCreateRequest:
+      type: object
+      required:
+        - name
+        - description
+      properties:
+        name:
+          type: string
+          example: "My Shop"
+        description:
+          type: string
+          example: "Best shop ever"
+    ShopUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Shop Name"
+        description:
+          type: string
+          example: "Updated description"
+    ShopStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BANNED]
+          example: "ACTIVE"
+    ShopListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShopInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5

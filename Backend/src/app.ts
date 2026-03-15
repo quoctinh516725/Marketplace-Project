@@ -6,13 +6,15 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 
 import apiRoute from "./routes";
+import { swaggerSpec } from "./config/swagger";
+import swaggerUi from "swagger-ui-express";
 
 const PORT = env.PORT;
 
 const app = express();
 
 app.use(helmet());
-app.use(  
+app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
@@ -43,6 +45,9 @@ app.use("/check", (req, res) => {
 });
 
 app.use("/api", apiRoute);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.use("/", (_req: Request, res: Response) => {
   res.send("<b>WELCOME TO MY BACKEND WEBSITE!</b>");
 });

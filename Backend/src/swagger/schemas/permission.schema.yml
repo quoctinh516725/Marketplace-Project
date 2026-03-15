@@ -1,0 +1,97 @@
+components:
+  schemas:
+    PermissionInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "perm123"
+        code:
+          type: string
+          example: "USER_MANAGE"
+        name:
+          type: string
+          example: "User Management"
+        description:
+          type: string
+          nullable: true
+          example: "Manage user accounts"
+        module:
+          type: string
+          example: "USER"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+    PermissionCreateRequest:
+      type: object
+      required:
+        - code
+        - name
+        - module
+      properties:
+        code:
+          type: string
+          example: "PRODUCT_CREATE"
+        name:
+          type: string
+          example: "Create Product"
+        description:
+          type: string
+          example: "Permission to create new products"
+        module:
+          type: string
+          example: "PRODUCT"
+    PermissionUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Permission Name"
+        description:
+          type: string
+          example: "Updated description"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+          example: "ACTIVE"
+    PermissionAssignRequest:
+      type: object
+      required:
+        - permissions
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["USER_MANAGE", "PRODUCT_CREATE"]
+    PermissionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10
