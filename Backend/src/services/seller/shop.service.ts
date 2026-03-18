@@ -18,6 +18,7 @@ import {
 import shopRepository from "../../repositories/shop.repository";
 import { cacheAsync } from "../../utils/cache";
 import { deleteAuthUserCache } from "../auth/auth.cache";
+import notificationService from "../notification/notification.service";
 
 class ShopService {
   private verifyShop = async (sellerId: string, shopId: string) => {
@@ -59,9 +60,16 @@ class ShopService {
 
     const shop = await shopRepository.create(sellerId, data);
     await Promise.all([
-      await deleteAuthUserCache(sellerId),
-      await cacheTag.invalidateTag("shop:list"),
+      deleteAuthUserCache(sellerId),
+      cacheTag.invalidateTag("shop:list"),
     ]);
+
+    // Send Notification
+    await notificationService.createNotification(
+      sellerId,
+      "Yêu cầu tạo cửa hàng đã được gửi",
+      `Yêu cầu tạo cửa hàng "${shop.name}" đã được gửi thành công. Vui lòng chờ quản trị viên duyệt.`,
+    );
 
     return toShopDetailResponse(shop);
   };

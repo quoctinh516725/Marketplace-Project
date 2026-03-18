@@ -1,0 +1,39 @@
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        emailOrUsername:
+          type: string
+          example: "tinhnq212@gmail.com"
+        password:
+          type: string
+          example: 123456
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: "tinh212"
+        email:
+          type: string
+          example: "tinhnq212@gmail.com"
+        password:
+          type: string
+          example: 123456
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserInfo"
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

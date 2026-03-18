@@ -35,6 +35,15 @@ export const selectUserDetail = {
       },
     },
   },
+
+  addresses: {
+    select: {
+      address: true,
+      districtId: true,
+      provinceId: true,
+      wardCode: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 export const selectUserBasic = {

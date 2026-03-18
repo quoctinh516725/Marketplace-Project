@@ -1,0 +1,68 @@
+components:
+  schemas:
+    CartItem:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          example: 2
+        shopId:
+          type: string
+          example: "shop123"
+        product:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "prod123"
+            name:
+              type: string
+              example: "iPhone 15 Pro"
+            thumbnailUrl:
+              type: string
+              example: "https://cdn.example.com/thumbnail.jpg"
+        variant:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "var123"
+            imageUrl:
+              type: string
+              nullable: true
+              example: "https://cdn.example.com/variant.jpg"
+            price:
+              type: number
+              example: 999.99
+            stock:
+              type: integer
+              example: 50
+            variantName:
+              type: string
+              nullable: true
+              example: "128GB Black"
+        addedAt:
+          type: integer
+          example: 1640995200
+    AddToCartRequest:
+      type: object
+      required:
+        - quantity
+        - variantId
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        variantId:
+          type: string
+          example: "var123"
+    UpdateCartQuantityRequest:
+      type: object
+      required:
+        - quantity
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+          example: 3

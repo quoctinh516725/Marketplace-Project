@@ -1,0 +1,550 @@
+paths:
+  /admin/users:
+    get:
+      summary: Lấy tất cả người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+  /admin/users/{id}:
+    get:
+      summary: Lấy người dùng theo ID (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    delete:
+      summary: Xóa người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Xóa người dùng thành công
+  /admin/users/{id}/status:
+    patch:
+      summary: Cập nhật trạng thái người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserStatusUpdateRequest"
+      responses:
+        "200":
+          description: Cập nhật trạng thái người dùng thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+  /admin/users/{userId}/roles:
+    post:
+      summary: Gán vai trò cho người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRoleRequest"
+      responses:
+        "200":
+          description: Gán vai trò thành công
+    delete:
+      summary: Thu hồi vai trò từ người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeRoleRequest"
+      responses:
+        "200":
+          description: Thu hồi vai trò thành công
+  /admin/users/{userId}/permissions:
+    post:
+      summary: Gán quyền cho người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignPermissionRequest"
+      responses:
+        "200":
+          description: Gán quyền thành công
+    delete:
+      summary: Xóa quyền từ người dùng (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemovePermissionRequest"
+      responses:
+        "200":
+          description: Xóa quyền thành công
+  /admin/roles:
+    get:
+      summary: Lấy tất cả vai trò (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleListResponse"
+    post:
+      summary: Tạo vai trò (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleCreateRequest"
+      responses:
+        "200":
+          description: Tạo vai trò thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+  /admin/roles/{id}:
+    get:
+      summary: Lấy vai trò theo ID (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+    patch:
+      summary: Cập nhật vai trò (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleUpdateRequest"
+      responses:
+        "200":
+          description: Cập nhật vai trò thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+    delete:
+      summary: Xóa vai trò (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Xóa vai trò thành công
+  /admin/roles/{roleId}/permissions:
+    post:
+      summary: Gán quyền cho vai trò (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignPermissionToRoleRequest"
+      responses:
+        "200":
+          description: Gán quyền thành công
+    delete:
+      summary: Xóa quyền từ vai trò (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemovePermissionFromRoleRequest"
+      responses:
+        "200":
+          description: Xóa quyền thành công
+  /admin/permissions:
+    get:
+      summary: Lấy tất cả quyền (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionListResponse"
+    post:
+      summary: Tạo quyền (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionCreateRequest"
+      responses:
+        "200":
+          description: Tạo quyền thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Permission"
+  /admin/permissions/{id}:
+    patch:
+      summary: Cập nhật quyền (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionUpdateRequest"
+      responses:
+        "200":
+          description: Cập nhật quyền thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Permission"
+    delete:
+      summary: Xóa quyền (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Xóa quyền thành công
+  /admin/settings:
+    get:
+      summary: Lấy tất cả cài đặt hệ thống (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SystemSetting"
+    post:
+      summary: Tạo cài đặt hệ thống (Chỉ dành cho quản trị viên)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemSettingCreateRequest"
+      responses:
+        "200":
+          description: Tạo cài đặt thành công
+  /admin/settings/{key}:
+    put:
+      summary: Update system setting (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemSettingUpdateRequest"
+      responses:
+        "200":
+          description: Setting updated successfully
+    delete:
+      summary: Delete system setting (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Setting deleted successfully
+  /admin/analytics/overview:
+    get:
+      summary: Get admin overview analytics (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverviewResponse"
+  /admin/analytics/revenue:
+    get:
+      summary: Get revenue analytics by time (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: range
+          in: query
+          schema:
+            type: string
+            default: "7d"
+            enum: [1d, 7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevenueDataPoint"
+  /admin/analytics/top-products:
+    get:
+      summary: Get top selling products (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TopProduct"
+  /admin/analytics/top-shops:
+    get:
+      summary: Get top performing shops (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TopShop"

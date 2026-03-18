@@ -1,4 +1,4 @@
-import { Prisma, User } from "../../generated/prisma/client";
+import { Prisma, User, UserAddress } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
 import { UserStatus } from "../constants";
 import { InputAll, PrismaType } from "../types";
@@ -15,7 +15,9 @@ import {
 export interface CreateUserData {
   username: string;
   email: string;
-  password: string;
+  password: string | null; // Có thể null nếu đăng nhập bằng Oauth
+  fullName?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateUserData {
@@ -28,14 +30,15 @@ export interface UpdateUserData {
   deletedAt?: Date;
 }
 
-class UserRepository {
-  existEmail = async (email: string): Promise<boolean> => {
-    const exist = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
+export type CreateUserAddressData = Prisma.UserAddressUncheckedCreateInput;
+export type UpdateUserAddressData = Prisma.UserAddressUncheckedUpdateInput;
 
-    return exist !== null;
+class UserRepository {
+  existEmail = async (email: string): Promise<UserBasicResult | null> => {
+    return await prisma.user.findUnique({
+      where: { email },
+      select: selectUserBasic,
+    });
   };
 
   existUsername = async (username: string): Promise<boolean> => {
@@ -44,6 +47,16 @@ class UserRepository {
       select: { id: true },
     });
     return exist !== null;
+  };
+
+  existEmailOrUsername = async (
+    emailOrUsername: string,
+  ): Promise<User | null> => {
+    return await prisma.user.findFirst({
+      where: {
+        OR: [{ username: emailOrUsername }, { email: emailOrUsername }],
+      },
+    });
   };
 
   create = async (
@@ -66,6 +79,28 @@ class UserRepository {
       select: selectUserBasic,
       data,
     });
+  };
+
+  createUserAddress = async (
+    client: PrismaType,
+    data: CreateUserAddressData,
+  ) => {
+    return await client.userAddress.create({ data });
+  };
+
+  updateUserAddress = async (
+    client: PrismaType,
+    addressId: string,
+    data: UpdateUserAddressData,
+  ) => {
+    return await client.userAddress.update({
+      where: { id: addressId },
+      data,
+    });
+  };
+
+  deleteUserAddress = async (client: PrismaType, addressId: string) => {
+    return await client.userAddress.delete({ where: { id: addressId } });
   };
 
   getUsers = async (input: InputAll): Promise<UserListResult> => {
@@ -136,13 +171,12 @@ class UserRepository {
     });
   };
 
-  existEmailOrUsername = async (
-    emailOrUsername: string,
-  ): Promise<User | null> => {
-    return await prisma.user.findFirst({
-      where: {
-        OR: [{ username: emailOrUsername }, { email: emailOrUsername }],
-      },
+  findUserAddressByAddressId = async (
+    client: PrismaType,
+    addressId: string,
+  ): Promise<UserAddress | null> => {
+    return await client.userAddress.findUnique({
+      where: { id: addressId },
     });
   };
 

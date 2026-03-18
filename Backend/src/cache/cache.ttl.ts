@@ -1,6 +1,3 @@
-import { profile } from "node:console";
-import { listen } from "node:quic";
-
 export const CacheTTL = {
   auth: {
     blacklist: (tokenExp: number) =>
@@ -20,4 +17,9 @@ export const CacheTTL = {
     detail: 3 * 60,
     list: 3 * 60,
   },
+  cart: {
+    user: 24 * 60 * 60,
+    guest: 7 * 24 * 60 * 60,
+  },
+  system: 60 * 60,
 };

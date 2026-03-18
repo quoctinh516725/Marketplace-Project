@@ -14,6 +14,7 @@ router.post(
   }),
   authController.login,
 );
+router.post("/login_google", authController.loginGoogle);
 router.post("/register", authController.register);
 router.post(
   "/refresh_token",

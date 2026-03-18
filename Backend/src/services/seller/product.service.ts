@@ -71,6 +71,7 @@ class ProductService {
       "product:list",
       `product:shop:${shopId}`,
       `product:${productId}`,
+      `product:cart:${productId}`,
     ];
 
     await Promise.all(tags.map((tag) => cacheTag.invalidateTag(tag)));
@@ -400,12 +401,7 @@ class ProductService {
 
     let productUpdated: ProductBasicResponseDto | null = null;
     try {
-      const result = await productRepository.updateProduct(
-        prisma,
-        id,
-        shopId,
-        data,
-      );
+      const result = await productRepository.updateProduct(prisma, id, data);
 
       productUpdated = toProductPublicResponse(result);
     } catch (error) {
@@ -416,13 +412,9 @@ class ProductService {
       throw new ConflictError("Cap nhat san pham that bai, vui long thu lai!");
     }
 
-    await Promise.all([
-      cacheTag.invalidateTag("product:list"),
-      cacheTag.invalidateTag(`product:shop:${shopId}`),
-      cacheTag.invalidateTag(`product:${id}`),
-    ]);
+    await this.invalidateProductCache(shopId, product.id);
 
-    // Update doc
+    // Update Search Index
     const doc: any = {};
 
     if (data.name !== undefined) doc.name = data.name;
@@ -516,19 +508,12 @@ class ProductService {
     await this.validateShopProduct(shopId, productId);
 
     const productDeleted = await prisma.$transaction(async (tx) => {
-      const product = await productRepository.deleteProduct(tx, productId);
-
       // Update Shop Total Product
       await shopRepository.update(tx, shopId, {
         totalProducts: { decrement: 1 },
       });
 
-      // Update Product Status
-      return await productRepository.updadeStatus(
-        tx,
-        productId,
-        ProductStatus.DELETED,
-      );
+      return await productRepository.deleteProduct(tx, productId);
     });
 
     await this.invalidateProductCache(shopId, productId);
@@ -562,6 +547,37 @@ class ProductService {
       doc: { status },
     });
     return toProductPublicResponse(productUpdated);
+  };
+
+  deleteVariant = async (shopId: string, variantId: string): Promise<any> => {
+    // verify variant exists and belongs to shop
+    const variant = await prisma.productVariant.findFirst({
+      where: {
+        id: variantId,
+        product: {
+          shopId,
+        },
+        deletedAt: null,
+      },
+      include: {
+        product: {
+          select: { id: true },
+        },
+      },
+    });
+    if (!variant) {
+      throw new NotFoundError(
+        "Biến thể không tồn tại hoặc không thuộc cửa hàng!",
+      );
+    }
+
+    const deleted = await productRepository.deleteProductVariant(
+      prisma,
+      variantId,
+    );
+    // optionally update status or caches
+    await this.invalidateProductCache(shopId, variant.product.id);
+    return deleted;
   };
 }
 

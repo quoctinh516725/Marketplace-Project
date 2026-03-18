@@ -30,4 +30,16 @@ export const env = {
 
   NODE_ENV: required("NODE_ENV"),
   CLOUDINARY_URL: required("CLOUDINARY_URL"),
+
+  GHN_TOKEN: required("GHN_TOKEN"),
+  GHN_SHOP_ID: required("GHN_SHOP_ID"),
+  GHN_API_URL: required("GHN_API_URL"),
+
+  VNP_TMNCODE: required("VNP_TMNCODE"),
+  VNP_HASHSECRET: required("VNP_HASHSECRET"),
+  VNP_URL: required("VNP_URL"),
+  VNP_RETURN_URL: required("VNP_RETURN_URL"),
+  EMAIL_USER: required("EMAIL_USER"),
+  EMAIL_PASSWORD: required("EMAIL_PASSWORD"),
+  OAUTH_CLIENT_ID: required("OAUTH_CLIENT_ID"),
 };

@@ -22,7 +22,6 @@ import {
   addBlacklistToken,
   deleteAuthUserCache,
 } from "./auth.cache";
-import userService from "../user/user.service";
 import roleService from "../role/role.service";
 import roleRepository from "../../repositories/role.repository";
 import permissionRepository from "../../repositories/permission.repository";
@@ -35,9 +34,17 @@ import {
   RefreshTokenResponseDto,
   UserInfoDto,
 } from "../../dtos";
+import cartService from "../cart/cart.service";
+import notificationService from "../notification/notification.service";
+import { verifyGoogleToken } from "../../config/oauth";
+import oauthRepository from "../../repositories/oauth.repository";
+import { Provider } from "../../constants/provider";
 
 class AuthService {
-  login = async (data: LoginRequestDto): Promise<LoginResponseDto> => {
+  login = async (
+    data: LoginRequestDto,
+    guestId?: string,
+  ): Promise<LoginResponseDto> => {
     const { emailOrUsername, password } = data;
     // Check exist
 
@@ -49,6 +56,11 @@ class AuthService {
       throw new ForbiddenError("Tài khoản đã bị vô hiệu hóa!");
     }
 
+    if (!user.password) {
+      throw new UnauthorizedError(
+        "Tài khoản này đã được đăng ký bằng phương thức khác.",
+      );
+    }
     // Compare Password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) throw new UnauthorizedError("Password không hợp lệ!");
@@ -125,6 +137,11 @@ class AuthService {
       });
     });
 
+    // Sync Cart
+    if (guestId) {
+      await cartService.mergeGuestCartToUserCart(guestId, user.id);
+    }
+
     return {
       user: {
         id: user.id,
@@ -138,7 +155,157 @@ class AuthService {
       refreshToken,
     };
   };
-  register = async (data: RegisterRequestDto): Promise<RegisterResponseDto> => {
+
+  loginGoogle = async (
+    idToken: string,
+    guestId?: string,
+  ): Promise<LoginResponseDto> => {
+    const userInfo = await verifyGoogleToken(idToken);
+    const { email, name, picture, googleId } = userInfo;
+
+    // Check exist googleId
+    let user = await oauthRepository.existProviderUserId(
+      Provider.GOOGLE,
+      googleId,
+    );
+
+    if (!user) {
+      user = await userRepository.existEmail(email);
+      if (user) {
+        // Gán thêm thông tin Oauth nếu user đã tồn tại với email
+        await oauthRepository.create(
+          prisma,
+          user.id,
+          Provider.GOOGLE,
+          googleId,
+        );
+      }
+    }
+
+    if (!user) {
+      // Nếu user chưa tồn tại, tạo mới user và gán thông tin Oauth
+      user = await prisma.$transaction(async (tx) => {
+        const newUser = await userRepository.create(tx, {
+          email,
+          username: `g_${googleId.slice(0, 8)}`,
+          fullName: name,
+          avatarUrl: picture,
+          password: null, // Không sử dụng password cho tài khoản Oauth
+        });
+
+        await oauthRepository.create(tx, newUser.id, Provider.GOOGLE, googleId);
+
+        // Gán role USER cho tài khoản mới tạo
+        const roleCode = UserRole.USER;
+        await roleService.assignRoleToUser(tx, newUser.id, [roleCode], false);
+        return newUser;
+      });
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenError("Tài khoản đã bị vô hiệu hóa!");
+    }
+
+    
+
+    //Get roles and permission for generate token
+    const { roleCodes, roleIds } = await roleRepository.findRolesByUser(
+      user.id,
+    );
+
+    
+
+    if (!roleCodes || roleCodes.length === 0)
+      throw new NotFoundError("Không tồn tại chức năng của người dùng!");
+
+    //Permission default with role
+    const rolePermission =
+      await permissionRepository.getPermissionsByRole(roleIds);
+
+    //Permission own User
+    const userPermission = await permissionRepository.getPermissionsByUser(
+      user.id,
+    );
+
+    const permissions = [...new Set([...rolePermission, ...userPermission])];
+    if (permissions.length === 0) {
+      throw new ForbiddenError("Tài khoản chưa được cấp quyền!");
+    }
+
+    //Get shop
+    const shop = await shopRepository.findShopBySeller(user.id);
+
+    //Get accessToken
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      shopId: shop?.id,
+    });
+
+    //Get ttl for Add Cache
+    const ttl = getTokenRemainingTime(accessToken);
+
+    // Add cache
+    await addAuthUserCache(
+      {
+        id: user.id,
+        status: user.status as UserStatus,
+        roles: roleCodes,
+        permissions,
+        shopId: shop?.id,
+      },
+      ttl,
+    );
+
+    //Get refresh token
+    const refreshToken = generateRefreshToken(user.id);
+
+    //Get expiredAt for Create refreshToken
+    const decoded = jwt.decode(refreshToken) as JwtPayload;
+    if (!decoded || !decoded.exp) {
+      throw new ValidationError("Không thể decode refresh token!");
+    }
+    const expiredAt = new Date(decoded.exp * 1000);
+
+    await prisma.$transaction(async (tx) => {
+      // Update lastLoginAt
+      await userRepository.update(tx, user.id, { lastLoginAt: new Date() });
+
+      // Revoke All RefreshToken
+      await refreshTokenRepository.revokeAllRefreshToken(tx, user.id);
+
+      //Create refresh token DB
+      await refreshTokenRepository.create(tx, {
+        userId: user.id,
+        token: refreshToken,
+        expiredAt,
+      });
+    });
+
+    // Sync Cart
+    if (guestId) {
+      await cartService.mergeGuestCartToUserCart(guestId, user.id);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      },
+      accessToken,
+      refreshToken,
+    };
+  };
+
+  register = async (
+    data: RegisterRequestDto,
+    guestId?: string,
+  ): Promise<RegisterResponseDto> => {
     const { email, username, password } = data;
 
     //Check exist email
@@ -223,6 +390,19 @@ class AuthService {
       },
       ttl,
     );
+
+    // Sync Cart
+    if (guestId) {
+      await cartService.mergeGuestCartToUserCart(guestId, user.id);
+    }
+
+    // Send Notification
+    await notificationService.createNotification(
+      user.id,
+      "Chào mừng bạn đến với Marketplace!",
+      "Tài khoản của bạn đã được tạo thành công. Chúc bạn có những trải nghiệm mua sắm tuyệt vời!",
+    );
+
     return {
       user: {
         id: user.id,
@@ -292,6 +472,23 @@ class AuthService {
       shopId: shop?.id,
     });
 
+    const newRefreshToken = generateRefreshToken(user.id);
+    // Create new RefreshToken DB
+    const decoded = jwt.decode(newRefreshToken) as JwtPayload;
+
+    await prisma.$transaction(async (tx) => {
+      if (!decoded || !decoded.exp) {
+        throw new ValidationError("Không thể decode refresh token!");
+      }
+      // Revoke current RefreshToken
+      await refreshTokenRepository.revokeRefreshToken(refreshToken);
+
+      await refreshTokenRepository.create(prisma, {
+        userId: user.id,
+        token: newRefreshToken,
+        expiredAt: new Date(decoded.exp * 1000),
+      });
+    });
     const ttl = getTokenRemainingTime(accessToken);
 
     //Update userCache
@@ -305,7 +502,7 @@ class AuthService {
       },
       ttl,
     );
-    return { accessToken };
+    return { accessToken, refreshToken: newRefreshToken };
   };
   logout = async (
     userId: string,

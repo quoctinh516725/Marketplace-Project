@@ -1,0 +1,569 @@
+paths:
+  /seller/shops/me:
+    get:
+      summary: Get my shop (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shop"
+  /seller/shops:
+    post:
+      summary: Create shop (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopCreateRequest"
+      responses:
+        "200":
+          description: Shop created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shop"
+    patch:
+      summary: Update shop (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopUpdateRequest"
+      responses:
+        "200":
+          description: Shop updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shop"
+  /seller/shops/status:
+    patch:
+      summary: Update shop status (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopStatusUpdateRequest"
+      responses:
+        "200":
+          description: Shop status updated successfully
+  /seller/shops/logo:
+    patch:
+      summary: Update shop logo (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                logo:
+                  type: string
+                  format: binary
+                  description: Logo image file
+      responses:
+        "200":
+          description: Logo updated successfully
+  /seller/shops/background:
+    patch:
+      summary: Update shop background (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                background:
+                  type: string
+                  format: binary
+                  description: Background image file
+      responses:
+        "200":
+          description: Background updated successfully
+  /seller/products:
+    get:
+      summary: Get my products (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+    post:
+      summary: Create product (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - categoryId
+                - variants
+              properties:
+                name:
+                  type: string
+                  example: "iPhone 15 Pro"
+                description:
+                  type: string
+                  example: "Latest iPhone model"
+                categoryId:
+                  type: string
+                  example: "cat123"
+                brandId:
+                  type: string
+                  example: "brand123"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["smartphone", "apple"]
+                variants:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - sku
+                      - price
+                      - stock
+                    properties:
+                      sku:
+                        type: string
+                        example: "IP15P-128GB"
+                      variantName:
+                        type: string
+                        example: "128GB Black"
+                      price:
+                        type: number
+                        example: 999.99
+                      stock:
+                        type: integer
+                        example: 50
+                      weight:
+                        type: number
+                        example: 0.2
+                      attributes:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - attributeId
+                            - value
+                          properties:
+                            attributeId:
+                              type: string
+                              example: "attr123"
+                            value:
+                              type: string
+                              example: "Black"
+      responses:
+        "200":
+          description: Product created successfully
+  /seller/products/{id}:
+    get:
+      summary: Get my product by ID (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+    put:
+      summary: Update product (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Product Name"
+                description:
+                  type: string
+                  example: "Updated description"
+                categoryId:
+                  type: string
+                  example: "cat123"
+                brandId:
+                  type: string
+                  example: "brand123"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["updated", "tag"]
+      responses:
+        "200":
+          description: Product updated successfully
+    delete:
+      summary: Delete product (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product deleted successfully
+  /seller/products/{id}/thumbnail:
+    post:
+      summary: Upload product thumbnail (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                thumbnail:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Thumbnail uploaded successfully
+  /seller/products/{id}/images:
+    post:
+      summary: Upload product images (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: Images uploaded successfully
+  /seller/products/{id}/status:
+    patch:
+      summary: Update product status (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, DRAFT]
+                  example: "ACTIVE"
+      responses:
+        "200":
+          description: Status updated successfully
+  /seller/products/{id}/variants/{variantId}:
+    delete:
+      summary: Delete product variant (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Variant deleted successfully
+  /seller/orders:
+    get:
+      summary: Get shop orders (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderListResponse"
+  /seller/orders/{id}/status:
+    patch:
+      summary: Update sub-order status (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [SHIPPING]
+                  example: "SHIPPING"
+      responses:
+        "200":
+          description: Status updated successfully
+  /seller/orders/refunds/{id}:
+    post:
+      summary: Handle refund request (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [APPROVE, REJECT]
+                  example: "APPROVE"
+      responses:
+        "200":
+          description: Refund request handled successfully
+  /seller/analytics/overview:
+    get:
+      summary: Get shop overview analytics (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverviewResponse"
+  /seller/analytics/revenue:
+    get:
+      summary: Get shop revenue analytics (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: range
+          in: query
+          schema:
+            type: string
+            default: "7d"
+            enum: [1d, 7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevenueDataPoint"
+  /seller/analytics/top-products:
+    get:
+      summary: Get shop top products (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TopProduct"
+  /seller/analytics/orders:
+    get:
+      summary: Get shop order statistics (Seller only)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalOrders:
+                    type: integer
+                    example: 150
+                  pendingOrders:
+                    type: integer
+                    example: 10
+                  shippingOrders:
+                    type: integer
+                    example: 20
+                  completedOrders:
+                    type: integer
+                    example: 120

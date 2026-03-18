@@ -75,6 +75,7 @@ class RoleRepository {
       where: { userId, role: { status: RoleStatus.ACTIVE } },
       select: { roleId: true, role: { select: { code: true } } },
     });
+    
     return {
       roleIds: result.map((r) => r.roleId),
       roleCodes: result.map((r) => r.role.code),

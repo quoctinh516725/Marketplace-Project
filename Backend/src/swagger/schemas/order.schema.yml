@@ -1,0 +1,229 @@
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      required:
+        - items
+        - receiverName
+        - receiverPhone
+        - provinceId
+        - districtId
+        - wardCode
+        - receiverAddress
+        - paymentMethod
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - variantId
+              - quantity
+            properties:
+              variantId:
+                type: string
+                example: "var123"
+              quantity:
+                type: integer
+                minimum: 1
+                example: 2
+        receiverName:
+          type: string
+          example: "Nguyen Van A"
+        receiverPhone:
+          type: string
+          example: "0123456789"
+        provinceId:
+          type: integer
+          example: 1
+        districtId:
+          type: integer
+          example: 1
+        wardCode:
+          type: string
+          example: "00001"
+        receiverAddress:
+          type: string
+          example: "123 Main St"
+        paymentMethod:
+          type: string
+          example: "VNPAY"
+        vouchers:
+          type: object
+          properties:
+            platform:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "PLATFORM10"
+            shop:
+              type: array
+              items:
+                type: object
+                required:
+                  - shopId
+                  - code
+                properties:
+                  shopId:
+                    type: string
+                    example: "shop123"
+                  code:
+                    type: string
+                    example: "SHOP5"
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          example: "ord123"
+        orderCode:
+          type: string
+          example: "ORD20240315001"
+        totalAmount:
+          type: number
+          example: 1999.98
+        paymentMethod:
+          type: string
+          example: "VNPAY"
+        paymentUrl:
+          type: string
+          example: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+        status:
+          type: string
+          example: "PENDING"
+    OrderListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "subord123"
+              orderCode:
+                type: string
+                example: "ORD20240315001-1"
+              shop:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "shop123"
+                  name:
+                    type: string
+                    example: "Apple Store"
+              totalAmount:
+                type: number
+                example: 1999.98
+              status:
+                type: string
+                example: "PENDING"
+              createdAt:
+                type: string
+                format: date-time
+                example: "2024-03-15T10:00:00Z"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5
+    OrderDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "subord123"
+        orderCode:
+          type: string
+          example: "ORD20240315001-1"
+        shop:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "shop123"
+            name:
+              type: string
+              example: "Apple Store"
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "prod123"
+                  name:
+                    type: string
+                    example: "iPhone 15 Pro"
+                  thumbnailUrl:
+                    type: string
+                    example: "https://cdn.example.com/thumbnail.jpg"
+              variant:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "var123"
+                  variantName:
+                    type: string
+                    nullable: true
+                    example: "128GB Black"
+                  price:
+                    type: number
+                    example: 999.99
+              quantity:
+                type: integer
+                example: 2
+              totalPrice:
+                type: number
+                example: 1999.98
+        totalAmount:
+          type: number
+          example: 1999.98
+        shippingAddress:
+          type: object
+          properties:
+            receiverName:
+              type: string
+              example: "Nguyen Van A"
+            receiverPhone:
+              type: string
+              example: "0123456789"
+            fullAddress:
+              type: string
+              example: "123 Main St, Ward 1, District 1, Ho Chi Minh City"
+        paymentMethod:
+          type: string
+          example: "VNPAY"
+        status:
+          type: string
+          example: "PENDING"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+    CancelOrderRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          example: "Changed my mind"

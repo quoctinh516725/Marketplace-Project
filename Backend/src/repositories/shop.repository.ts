@@ -1,6 +1,5 @@
-import { Prisma, Shop } from "../../generated/prisma/client";
+import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
-import { ShopStatus } from "../constants/shopStatus";
 import { InputAll, PrismaType } from "../types";
 import {
   selectShopDetail,
@@ -13,6 +12,9 @@ import {
 export interface CreateShopData {
   name: string;
   address: string;
+  provinceId: number;
+  districtId: number;
+  wardCode: string;
   phone: string;
   slug: string;
   description?: string;

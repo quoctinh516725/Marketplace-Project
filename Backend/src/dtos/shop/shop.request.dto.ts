@@ -7,6 +7,9 @@ export type CreateShopRequestDto = {
   address: string;
   phone: string;
   slug: string;
+  provinceId: number;
+  districtId: number;
+  wardCode: string;
   description?: string;
 };
 export type UpdateShopRequestDto = Partial<CreateShopRequestDto> & {
@@ -20,13 +23,24 @@ export const createShopRequestDto = (data: any): CreateShopRequestDto => {
   }
   if (!data) throw new ValidationError("Không có dữ liệu được truyền!");
 
-  const { name, address, phone, description } = data;
+  const {
+    name,
+    address,
+    phone,
+    provinceId,
+    districtId,
+    wardCode,
+    description,
+  } = data;
   let { slug } = data;
 
   const errors: string[] = [];
   if (!name) errors.push("Vui lòng cung cấp tên cửa hàng");
   if (!address) errors.push("Vui lòng cung cấp địa chỉ cửa hàng");
   if (!phone) errors.push("Vui lòng cung cấp số điện thoại cửa hàng");
+  if (!provinceId) errors.push("Vui lòng cung cấp mã tỉnh của cửa hàng");
+  if (!districtId) errors.push("Vui lòng cung cấp mã huyện cửa hàng");
+  if (!wardCode) errors.push("Vui lòng cung cấp mã đường cửa hàng");
 
   if (errors.length > 0) {
     throw new ValidationError(errors.join(", "));
@@ -39,6 +53,9 @@ export const createShopRequestDto = (data: any): CreateShopRequestDto => {
   return {
     name,
     address,
+    provinceId,
+    districtId,
+    wardCode,
     phone,
     slug,
     description,
@@ -69,6 +86,18 @@ export const updateShopRequestDto = (data: any): UpdateShopRequestDto => {
 
   if (data.address !== undefined) {
     dto.address = data.address.trim();
+  }
+
+  if (data.provinceId !== undefined) {
+    dto.provinceId = data.provinceId;
+  }
+
+  if (data.districtId !== undefined) {
+    dto.districtId = data.districtId;
+  }
+
+  if (data.wardCode !== undefined) {
+    dto.wardCode = data.wardCode;
   }
 
   if (data.phone !== undefined) {

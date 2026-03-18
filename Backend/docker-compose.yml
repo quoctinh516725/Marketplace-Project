@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - mssql
+      - elasticsearch
+    networks:
+      - marketplace
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  cart-worker:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - mssql
+      - elasticsearch
+    networks:
+      - marketplace
+    command: npm run start:cart-worker
+    restart: unless-stopped
+
+  cleanup-worker:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - mssql
+      - elasticsearch
+    networks:
+      - marketplace
+    command: npm run start:cleanup-worker
+    restart: unless-stopped
+
+  email-worker:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - mssql
+      - elasticsearch
+    networks:
+      - marketplace
+    command: npm run start:email-worker
+    restart: unless-stopped
+
+  order-worker:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - mssql
+      - elasticsearch
+    networks:
+      - marketplace
+    command: npm run start:order-worker
+    restart: unless-stopped
+
+  payment-worker:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - mssql
+      - elasticsearch
+    networks:
+      - marketplace
+    command: npm run start:payment-worker
+    restart: unless-stopped
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Express
+    volumes:
+      - mssql_data:/var/opt/mssql
+      - ./prisma/migrations:/docker-entrypoint-initdb.d/migrations
+    ports:
+      - "1433:1433"
+    networks:
+      - marketplace
+    restart: unless-stopped
+
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - marketplace
+    restart: unless-stopped
+
+volumes:
+  mssql_data:
+  elasticsearch_data:
+
+networks:
+  marketplace:
+    driver: bridge

@@ -1,0 +1,133 @@
+paths:
+  /vouchers:
+    get:
+      summary: Lấy tất cả voucher
+      tags:
+        - Vouchers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherListResponse"
+    post:
+      summary: Tạo voucher
+      tags:
+        - Vouchers
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoucherCreateRequest"
+      responses:
+        "200":
+          description: Tạo voucher thành công
+  /vouchers/{id}:
+    get:
+      summary: Lấy voucher theo ID
+      tags:
+        - Vouchers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherInfo"
+    patch:
+      summary: Cập nhật voucher
+      tags:
+        - Vouchers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoucherUpdateRequest"
+      responses:
+        "200":
+          description: Cập nhật voucher thành công
+    delete:
+      summary: Xóa voucher
+      tags:
+        - Vouchers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Xóa voucher thành công
+  /vouchers/platform:
+    get:
+      summary: Lấy voucher nền tảng
+      tags:
+        - Vouchers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VoucherInfo"
+  /vouchers/shop/{shopId}:
+    get:
+      summary: Lấy voucher cửa hàng
+      tags:
+        - Vouchers
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VoucherInfo"

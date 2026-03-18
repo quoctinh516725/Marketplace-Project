@@ -1,0 +1,172 @@
+paths:
+  /permissions:
+    get:
+      summary: Get all permissions (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionListResponse"
+    post:
+      summary: Create permission (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionCreateRequest"
+      responses:
+        "200":
+          description: Permission created successfully
+  /permissions/{id}:
+    put:
+      summary: Update permission (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionUpdateRequest"
+      responses:
+        "200":
+          description: Permission updated successfully
+    delete:
+      summary: Delete permission (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Permission deleted successfully
+  /roles/{roleId}/permissions:
+    post:
+      summary: Assign permissions to role (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionAssignRequest"
+      responses:
+        "200":
+          description: Permissions assigned successfully
+    delete:
+      summary: Remove permissions from role (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionAssignRequest"
+      responses:
+        "200":
+          description: Permissions removed successfully
+  /users/{userId}/permissions:
+    post:
+      summary: Assign permissions to user (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionAssignRequest"
+      responses:
+        "200":
+          description: Permissions assigned successfully
+    delete:
+      summary: Remove permissions from user (Admin only)
+      tags:
+        - Permissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionAssignRequest"
+      responses:
+        "200":
+          description: Permissions removed successfully

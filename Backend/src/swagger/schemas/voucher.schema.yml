@@ -1,0 +1,209 @@
+components:
+  schemas:
+    VoucherInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "vou123"
+        code:
+          type: string
+          example: "SAVE10"
+        name:
+          type: string
+          example: "10% Off Voucher"
+        description:
+          type: string
+          nullable: true
+          example: "Get 10% off on all products"
+        type:
+          type: string
+          enum: [PLATFORM, SHOP]
+          example: "PLATFORM"
+        shopId:
+          type: string
+          nullable: true
+          example: "shop123"
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+          example: "PERCENT"
+        discountValue:
+          type: number
+          example: 10
+        minOrderValue:
+          type: number
+          nullable: true
+          example: 100
+        maxDiscountAmount:
+          type: number
+          nullable: true
+          example: 50
+        usageLimit:
+          type: integer
+          example: 100
+        usageCount:
+          type: integer
+          example: 25
+        perUserLimit:
+          type: integer
+          example: 1
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-12-31T23:59:59Z"
+        status:
+          type: string
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        shop:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              example: "shop123"
+            name:
+              type: string
+              example: "Apple Store"
+    VoucherCreateRequest:
+      type: object
+      required:
+        - code
+        - name
+        - type
+        - discountType
+        - discountValue
+        - usageLimit
+        - startDate
+        - endDate
+      properties:
+        code:
+          type: string
+          example: "WELCOME10"
+        name:
+          type: string
+          example: "Welcome Voucher"
+        description:
+          type: string
+          example: "10% off for new customers"
+        type:
+          type: string
+          enum: [PLATFORM, SHOP]
+          example: "PLATFORM"
+        shopId:
+          type: string
+          nullable: true
+          example: "shop123"
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+          example: "PERCENT"
+        discountValue:
+          type: number
+          example: 10
+        minOrderValue:
+          type: number
+          example: 50
+        maxDiscountAmount:
+          type: number
+          example: 20
+        usageLimit:
+          type: integer
+          example: 100
+        perUserLimit:
+          type: integer
+          example: 1
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-12-31T23:59:59Z"
+    VoucherUpdateRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "UPDATED10"
+        name:
+          type: string
+          example: "Updated Voucher Name"
+        description:
+          type: string
+          example: "Updated description"
+        type:
+          type: string
+          enum: [PLATFORM, SHOP]
+          example: "PLATFORM"
+        shopId:
+          type: string
+          nullable: true
+          example: "shop123"
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+          example: "PERCENT"
+        discountValue:
+          type: number
+          example: 15
+        minOrderValue:
+          type: number
+          nullable: true
+          example: 75
+        maxDiscountAmount:
+          type: number
+          nullable: true
+          example: 30
+        usageLimit:
+          type: integer
+          example: 200
+        perUserLimit:
+          type: integer
+          example: 2
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-02-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-11-30T23:59:59Z"
+        status:
+          type: string
+          example: "ACTIVE"
+    VoucherListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/VoucherInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5

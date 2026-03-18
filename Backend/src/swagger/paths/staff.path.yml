@@ -1,0 +1,365 @@
+paths:
+  /staff/shops:
+    get:
+      summary: Get all shops (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopListResponse"
+  /staff/shops/{shopId}/review:
+    post:
+      summary: Review shop creation request (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopReviewRequest"
+      responses:
+        "200":
+          description: Review completed successfully
+  /staff/shops/{shopId}/banned:
+    patch:
+      summary: Ban or unban shop (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopBanRequest"
+      responses:
+        "200":
+          description: Shop ban status updated successfully
+  /staff/products:
+    get:
+      summary: Get all products (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+  /staff/products/{id}:
+    get:
+      summary: Get product by ID (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+  /staff/products/{id}/review:
+    post:
+      summary: Review product approval (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, REJECTED]
+                  example: "ACTIVE"
+                reason:
+                  type: string
+                  example: "Product information incomplete"
+      responses:
+        "200":
+          description: Review completed successfully
+  /staff/products/{id}/status:
+    patch:
+      summary: Update product status (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, BANNED]
+                  example: "ACTIVE"
+      responses:
+        "200":
+          description: Status updated successfully
+  /staff/categories:
+    get:
+      summary: Get all categories (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryListResponse"
+    post:
+      summary: Create category (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreateRequest"
+      responses:
+        "200":
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+  /staff/categories/tree:
+    get:
+      summary: Get category tree (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryTree"
+  /staff/categories/{id}:
+    get:
+      summary: Get category by ID (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    patch:
+      summary: Update category (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdateRequest"
+      responses:
+        "200":
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      summary: Delete category (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Category deleted successfully
+  /staff/categories/{id}/status:
+    patch:
+      summary: Update category status (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryStatusUpdateRequest"
+      responses:
+        "200":
+          description: Category status updated successfully
+  /staff/categories/{id}/attributes:
+    post:
+      summary: Create category attribute (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryAttributeCreateRequest"
+      responses:
+        "200":
+          description: Attribute created successfully
+  /staff/categories/{id}/attributes/{attributeId}:
+    delete:
+      summary: Delete category attribute (Staff only)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attributeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attribute deleted successfully

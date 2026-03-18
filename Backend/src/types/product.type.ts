@@ -53,6 +53,7 @@ export const selectProductDetail = {
   },
 
   variants: {
+    where: { deletedAt: null },
     select: {
       id: true,
       sku: true,
@@ -62,6 +63,7 @@ export const selectProductDetail = {
       stock: true,
       weight: true,
       status: true,
+      deletedAt: true,
       productAttributes: {
         select: {
           attributeValue: {
@@ -89,6 +91,38 @@ export const selectProductDetail = {
     },
   },
 } satisfies Prisma.ProductSelect;
+
+export const selectProductVariant = {
+  id: true,
+  imageUrl: true,
+  price: true,
+  stock: true,
+  variantName: true,
+  weight: true,
+  deletedAt: true,
+  product: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      thumbnailUrl: true,
+      deletedAt: true,
+      shop: {
+        select: {
+          id: true,
+          districtId: true,
+          provinceId: true,
+          wardCode: true,
+          commissionRate: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.ProductVariantSelect;
+
+export type ProductVariantResult = Prisma.ProductVariantGetPayload<{
+  select: typeof selectProductVariant;
+}>;
 
 export type ProductBasicResult = Prisma.ProductGetPayload<{
   select: typeof selectProductBasic;

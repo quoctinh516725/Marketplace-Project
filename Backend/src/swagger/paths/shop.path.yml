@@ -1,0 +1,199 @@
+paths:
+  /public/shops/{slug}:
+    get:
+      summary: Lấy thông tin cửa hàng theo slug
+      tags:
+        - Shops
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopInfo"
+  /seller/shops:
+    get:
+      summary: Lấy cửa hàng của tôi (Chỉ dành cho người bán)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopInfo"
+    post:
+      summary: Tạo cửa hàng (Chỉ dành cho người bán)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopCreateRequest"
+      responses:
+        "200":
+          description: Tạo cửa hàng thành công
+    put:
+      summary: Cập nhật cửa hàng của tôi (Chỉ dành cho người bán)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopUpdateRequest"
+      responses:
+        "200":
+          description: Cập nhật cửa hàng thành công
+  /seller/shops/status:
+    patch:
+      summary: Cập nhật trạng thái cửa hàng (Chỉ dành cho người bán)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopStatusUpdateRequest"
+      responses:
+        "200":
+          description: Cập nhật trạng thái thành công
+  /seller/shops/logo:
+    post:
+      summary: Cập nhật logo cửa hàng (Chỉ dành cho người bán)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Cập nhật logo thành công
+  /seller/shops/background:
+    post:
+      summary: Cập nhật hình nền cửa hàng (Chỉ dành cho người bán)
+      tags:
+        - Seller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                background:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Cập nhật hình nền thành công
+  /staff/shops:
+    get:
+      summary: Lấy tất cả cửa hàng (Chỉ dành cho nhân viên)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopListResponse"
+  /staff/shops/{shopId}/ban:
+    post:
+      summary: Cấm cửa hàng (Chỉ dành cho nhân viên)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cấm cửa hàng thành công
+  /staff/shops/{shopId}/review:
+    post:
+      summary: Xem xét yêu cầu tạo cửa hàng (Chỉ dành cho nhân viên)
+      tags:
+        - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [APPROVED, REJECTED]
+                reason:
+                  type: string
+                  example: "Thông tin cửa hàng không đầy đủ"
+      responses:
+        "200":
+          description: Xem xét hoàn thành thành công

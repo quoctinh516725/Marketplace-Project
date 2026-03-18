@@ -24,6 +24,12 @@ declare global {
       user?: DecodedToken;
       token?: string;
       roles?: string[];
+      idempotencyKey?: {
+        key: string;
+        lockValue: string;
+        lockKey: string;
+        requestHash: string;
+      };
     }
   }
 }
@@ -50,7 +56,10 @@ export const authenticate = asyncHandler(
     let userCache = await getAuthUserCache(decoded.userId);
 
     if (!userCache) {
-      const user = await userRepository.findUserDetailById(prisma, decoded.userId);
+      const user = await userRepository.findUserDetailById(
+        prisma,
+        decoded.userId,
+      );
 
       if (!user) throw new UnauthorizedError("Tài khoản không tồn tại!");
 
@@ -100,6 +109,34 @@ export const authenticate = asyncHandler(
     next();
   },
 );
+
+export const optionalAuthenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+
+      // Check blacklist
+      const decoded = verifyAccessToken(token);
+      const isBlacklist = await isBlacklistToken(decoded.jti as string);
+      if (!isBlacklist) {
+        try {
+          const decoded = verifyAccessToken(token);
+          req.user = decoded;
+        } catch (error) {}
+      }
+    }
+
+    next();
+  } catch (error) {
+    next();
+  }
+};
 
 export const requireRole = (roleCodes: UserRole[]) =>
   asyncHandler(

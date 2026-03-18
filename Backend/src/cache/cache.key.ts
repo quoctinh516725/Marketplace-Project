@@ -52,7 +52,10 @@ export const CacheKey = {
       shopProducts: (input: InputAll, shopId: string) =>
         listCache(input, "product:public", { type: "shop", id: shopId }),
       categoryProducts: (input: InputAll, categoryId: string) =>
-        listCache(input, "product:public", { type: "category", id: categoryId }),
+        listCache(input, "product:public", {
+          type: "category",
+          id: categoryId,
+        }),
     },
 
     seller: {
@@ -65,5 +68,12 @@ export const CacheKey = {
         `${KEY_PREFIX}:product:detail:staff:${productId}`,
       list: (input: InputAll) => listCache(input, "product:staff"),
     },
+  },
+
+  system: (key: string) => `${KEY_PREFIX}:system:${key}`,
+
+  idempotency: {
+    key: (key: string, userId: string) =>
+      `${KEY_PREFIX}:idempotency:${key}:${userId}`,
   },
 };

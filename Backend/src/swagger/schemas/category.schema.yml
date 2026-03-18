@@ -1,0 +1,156 @@
+components:
+  schemas:
+    CategoryInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "cat123"
+        name:
+          type: string
+          example: "Electronics"
+        slug:
+          type: string
+          example: "electronics"
+        description:
+          type: string
+          nullable: true
+          example: "Electronic devices and accessories"
+        imageUrl:
+          type: string
+          nullable: true
+          example: "https://cdn.example.com/category.jpg"
+        status:
+          type: string
+          example: "ACTIVE"
+        parentId:
+          type: string
+          nullable: true
+          example: null
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "attr123"
+              name:
+                type: string
+                example: "Color"
+              code:
+                type: string
+                example: "color"
+              type:
+                type: string
+                example: "SELECT"
+              values:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "val123"
+                    value:
+                      type: string
+                      example: "Red"
+    CategoryCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "New Category"
+        description:
+          type: string
+          example: "Category description"
+        parentId:
+          type: string
+          nullable: true
+          example: "parent123"
+        imageUrl:
+          type: string
+          example: "https://cdn.example.com/image.jpg"
+    CategoryUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Category"
+        description:
+          type: string
+          example: "Updated description"
+        imageUrl:
+          type: string
+          example: "https://cdn.example.com/new-image.jpg"
+    CategoryStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+          example: "ACTIVE"
+    CategoryAttributeCreateRequest:
+      type: object
+      required:
+        - name
+        - code
+        - type
+      properties:
+        name:
+          type: string
+          example: "Size"
+        code:
+          type: string
+          example: "size"
+        type:
+          type: string
+          enum: [TEXT, SELECT, NUMBER]
+          example: "SELECT"
+        values:
+          type: array
+          items:
+            type: string
+          example: ["S", "M", "L", "XL"]
+    CategoryTreeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "cat123"
+        name:
+          type: string
+          example: "Electronics"
+        slug:
+          type: string
+          example: "electronics"
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryTreeResponse"
+    CategoryListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5

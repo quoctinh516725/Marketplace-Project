@@ -1,12 +1,15 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
+import { ProductStatus } from "../constants/productStatus";
 import { InputAll, PrismaType } from "../types";
 import {
   ProductBasicResult,
   ProductDetailResult,
   ProductListResult,
+  ProductVariantResult,
   selectProductBasic,
   selectProductDetail,
+  selectProductVariant,
 } from "../types/product.type";
 
 interface CreateProductData {
@@ -24,11 +27,11 @@ interface CreateProductData {
 interface CreateProductVariantData {
   productId: string;
   sku: string;
-  variantName: string | null;
+  variantName: string;
   imageUrl: string | null;
   price: number;
   stock: number;
-  weight: number | null;
+  weight: number;
 }
 
 interface CreateProductImageData {
@@ -135,6 +138,7 @@ class ProductRepository {
       prisma.productCategory.findMany({
         where,
         select: { product: { select: selectProductBasic } },
+        orderBy: { product: { name: "asc" } },
         skip,
         take,
       }),
@@ -202,6 +206,24 @@ class ProductRepository {
     return `PRD${result[0].value.toString().padStart(6, "0")}`;
   };
 
+  getProductVariantById = async (
+    id: string,
+  ): Promise<ProductVariantResult | null> => {
+    return await prisma.productVariant.findFirst({
+      where: { id, status: ProductStatus.ACTIVE, deletedAt: null },
+      select: selectProductVariant,
+    });
+  };
+
+  getProductVariantByIds = async (
+    ids: string[],
+  ): Promise<ProductVariantResult[]> => {
+    return await prisma.productVariant.findMany({
+      where: { id: { in: ids }, status: ProductStatus.ACTIVE, deletedAt: null },
+      select: selectProductVariant,
+    });
+  };
+
   createProduct = async (
     client: PrismaType,
     data: CreateProductData,
@@ -212,11 +234,10 @@ class ProductRepository {
   updateProduct = async (
     client: PrismaType,
     id: string,
-    shopId: string,
     data: Prisma.ProductUpdateManyMutationInput,
   ): Promise<ProductBasicResult> => {
     return await client.product.update({
-      where: { id, shopId },
+      where: { id },
       data,
       select: selectProductDetail,
     });
@@ -297,6 +318,13 @@ class ProductRepository {
       where: { id },
       data: { deletedAt: new Date() },
       select: selectProductBasic,
+    });
+  };
+
+  deleteProductVariant = async (client: PrismaType, id: string) => {
+    return await client.productVariant.update({
+      where: { id },
+      data: { deletedAt: new Date() },
     });
   };
 

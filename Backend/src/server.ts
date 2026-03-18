@@ -3,9 +3,13 @@ import app from "./app";
 import { env } from "./config/env";
 import { prisma } from "./config/prisma";
 import redis from "./config/redis";
+import { socketService } from "./socket";
+import { execSync } from "child_process";
 
 const PORT = env.PORT;
 const server = http.createServer(app);
+
+socketService.init(server);
 
 async function shutDown(): Promise<void> {
   console.log("Server has been shutdown...");
@@ -17,6 +21,17 @@ async function shutDown(): Promise<void> {
   process.exit(0);
 }
 
+// Run migrations on startup
+if (process.env.NODE_ENV === "production") {
+  try {
+    console.log("Running database migrations...");
+    execSync("npx prisma migrate deploy", { stdio: "inherit" });
+    console.log("Migrations completed.");
+  } catch (error) {
+    console.error("Migration failed:", error);
+    process.exit(1);
+  }
+}
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

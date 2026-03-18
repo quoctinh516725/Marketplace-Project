@@ -1,4 +1,3 @@
-import { Request } from "express";
 import { prisma } from "../../config/prisma";
 import { UserRole, UserStatus } from "../../constants";
 import {
@@ -7,9 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../error/AppError";
-import userRepository, {
-  UpdateUserData,
-} from "../../repositories/user.repository";
+import userRepository from "../../repositories/user.repository";
 import { InputAll } from "../../types";
 import { DecodedToken } from "../../utils/jwt";
 import { cacheAsync } from "../../utils/cache";
@@ -28,7 +25,11 @@ import {
   toUserBasicResponse,
 } from "../../dtos/user/mapper.dto";
 import { deleteAuthUserCache } from "../auth/auth.cache";
-import { UserUpdateRequest } from "../../dtos/user/user.request.dto";
+import {
+  CreateUserAddressRequest,
+  UpdateUserAddressRequest,
+  UserUpdateRequest,
+} from "../../dtos/user/user.request.dto";
 
 class UserService {
   getMe = async (userId: string): Promise<UserDetailResponseDto> => {
@@ -38,7 +39,7 @@ class UserService {
       [`user:${userId}`],
       async () => {
         const user = await userRepository.findUserDetailById(prisma, userId);
-        if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+        if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
         const data = toUserDetailResponse(user);
         return {
@@ -48,12 +49,12 @@ class UserService {
       },
     );
   };
+
   getUsers = async (input: InputAll): Promise<UserListResponseDto> => {
     const { page, limit, status, search } = input;
 
-    //Validate status
     if (status && !Object.values(UserStatus).includes(status as UserStatus)) {
-      throw new ValidationError("Trạng thái không hợp lệ!");
+      throw new ValidationError("Trang thai khong hop le!");
     }
 
     return cacheAsync(
@@ -89,7 +90,7 @@ class UserService {
       [`user:${userId}`],
       async () => {
         const user = await userRepository.getProfile(userId);
-        if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+        if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
         const roles = user.userRoles.map((r) => `role:${r.role.code}`);
         const data = toUserProfileResponse(user);
@@ -103,10 +104,9 @@ class UserService {
 
   getUserById = async (userId: string): Promise<UserDetailResponseDto> => {
     const user = await userRepository.findUserDetailById(prisma, userId);
-    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
-    const data = toUserDetailResponse(user);
-    return data;
+    return toUserDetailResponse(user);
   };
 
   update = async (
@@ -114,28 +114,71 @@ class UserService {
     data: UserUpdateRequest,
   ): Promise<UserBasicResponseDto> => {
     const user = await userRepository.findUserDetailById(prisma, userId);
-    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
     const result = await userRepository.update(prisma, userId, data);
 
     const userUpdated = toUserBasicResponse(result);
-
     await deleteUserCache(userUpdated.id);
     return userUpdated;
   };
+
+  createUserAddress = async (
+    userId: string,
+    data: CreateUserAddressRequest,
+  ) => {
+    const user = await userRepository.findUserDetailById(prisma, userId);
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
+
+    return await userRepository.createUserAddress(prisma, { ...data, userId });
+  };
+
+  updateUserAddress = async (
+    userId: string,
+    addressId: string,
+    data: UpdateUserAddressRequest,
+  ) => {
+    const address = await userRepository.findUserAddressByAddressId(
+      prisma,
+      addressId,
+    );
+    if (!address) throw new NotFoundError("Dia chi khong ton tai!");
+
+    if (address.userId !== userId) {
+      throw new ForbiddenError("Khong co quyen cap nhat dia chi nay!");
+    }
+
+    return await userRepository.updateUserAddress(prisma, addressId, data);
+  };
+
+  deleteUserAddress = async (userId: string, addressId: string) => {
+    const address = await userRepository.findUserAddressByAddressId(
+      prisma,
+      addressId,
+    );
+    if (!address) throw new NotFoundError("Dia chi khong ton tai!");
+    if (address.userId !== userId) {
+      throw new ForbiddenError("Khong co quyen cap nhat dia chi nay!");
+    }
+
+    if (!address) throw new NotFoundError("Dia chi khong ton tai!");
+
+    return await userRepository.deleteUserAddress(prisma, addressId);
+  };
+
   updateUserStatus = async (
     userId: string,
     currentUser: DecodedToken,
     status: UserStatus,
   ): Promise<UserBasicResponseDto> => {
     const user = await userRepository.findUserDetailById(prisma, userId);
-    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
 
     const isAdmin = user.userRoles.some(
       (ur) => ur.role.code === UserRole.ADMIN,
     );
     if (isAdmin && !currentUser.roles?.includes(UserRole.ADMIN)) {
-      throw new ForbiddenError("Không có quyền cập nhật trạng thái  Admin!");
+      throw new ForbiddenError("Khong co quyen cap nhat trang thai Admin!");
     }
 
     const result = await userRepository.update(prisma, userId, { status });
@@ -147,20 +190,20 @@ class UserService {
     ]);
     return userUpdated;
   };
+
   delete = async (
     id: string,
     currentUser: DecodedToken,
   ): Promise<UserBasicResponseDto> => {
     const user = await userRepository.findUserDetailById(prisma, id);
-    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
-    if (user.deletedAt) throw new ConflictError("Người dùng đã bị xóa!");
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
+    if (user.deletedAt) throw new ConflictError("Nguoi dung da bi xoa!");
 
-    //Chỉ ADMIN mới xóa được ADMIN
     const isAdmin = user.userRoles.some(
       (ur) => ur.role.code === UserRole.ADMIN,
     );
     if (isAdmin && !currentUser.roles?.includes(UserRole.ADMIN)) {
-      throw new ForbiddenError("Không có quyền xóa Admin!");
+      throw new ForbiddenError("Khong co quyen xoa Admin!");
     }
 
     const result = await userRepository.update(prisma, user.id, {
@@ -176,13 +219,13 @@ class UserService {
 
     return userDeleted;
   };
-  
+
   updateAvatar = async (
     userId: string,
     avatarUrl: string,
   ): Promise<UserBasicResponseDto> => {
     const user = await userRepository.findUserDetailById(prisma, userId);
-    if (!user) throw new NotFoundError("Người dùng không tồn tại!");
+    if (!user) throw new NotFoundError("Nguoi dung khong ton tai!");
     const result = await userRepository.updateAvatar(userId, avatarUrl);
     const userUpdated = toUserBasicResponse(result);
 
@@ -190,4 +233,5 @@ class UserService {
     return userUpdated;
   };
 }
+
 export default new UserService();

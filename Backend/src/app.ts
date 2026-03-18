@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import { env } from "./config/env";
@@ -6,6 +6,8 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 
 import apiRoute from "./routes";
+import { swaggerSpec } from "./config/swagger";
+import swaggerUi from "swagger-ui-express";
 
 const PORT = env.PORT;
 
@@ -26,7 +28,7 @@ app.use(
       // Development
       callback(null, true);
     },
-    credentials: true,
+    credentials: true, // Cho phép gửi và nhận các thông tin xác thực như cookie, authentication
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -35,7 +37,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.use("/check", (req, res) => {
+app.use("/health", (req, res) => {
   res.json({
     success: true,
     message: `Server running on ${PORT}`,
@@ -43,6 +45,12 @@ app.use("/check", (req, res) => {
 });
 
 app.use("/api", apiRoute);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+app.use("/", (_req: Request, res: Response) => {
+  res.send("<b>WELCOME TO MY BACKEND WEBSITE!</b>");
+});
 
 app.use(errorHandler);
 

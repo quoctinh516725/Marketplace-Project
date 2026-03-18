@@ -5,6 +5,8 @@ import { sendSuccess } from "../utils/response";
 import { UnauthorizedError, ValidationError } from "../error/AppError";
 import { uploadStream } from "../utils/uploadStream";
 import {
+  createUserAddressRequest,
+  updateUserAddressRequest,
   updateUserStatusRequestDto,
   userUpdateRequest,
 } from "../dtos/user/user.request.dto";
@@ -58,6 +60,41 @@ class UserController {
     const result = await userService.update(user.userId, allowedData);
     sendSuccess(res, result, "Cập nhật thông tin người dùng thành công!");
   });
+
+  updateUserAddress = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user?.userId!;
+      const addressId = req.params.id as string;
+      const allowedData = updateUserAddressRequest(req.body);
+
+      const result = await userService.updateUserAddress(
+        userId,
+        addressId,
+        allowedData,
+      );
+      sendSuccess(res, result, "Cập nhật địa chỉ người dùng thành công!");
+    },
+  );
+
+  createUserAddress = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user?.userId!;
+      const allowedData = createUserAddressRequest(req.body);
+
+      const result = await userService.createUserAddress(userId, allowedData);
+      sendSuccess(res, result, "Tạo địa chỉ người dùng thành công!");
+    },
+  );
+
+  deleteUserAddress = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user?.userId!;
+      const addressId = req.params.id as string;
+      const result = await userService.deleteUserAddress(userId,addressId);
+      sendSuccess(res, result, "Xóa địa chỉ người dùng thành công!");
+    },
+  );
+
   updateUserStatus = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.params.id as string;

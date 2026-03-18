@@ -1,0 +1,106 @@
+components:
+  schemas:
+    ReviewInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "rev123"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          nullable: true
+          example: "Great product!"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T10:00:00Z"
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "user123"
+            username:
+              type: string
+              example: "johndoe"
+            avatarUrl:
+              type: string
+              nullable: true
+              example: "https://cdn.example.com/avatar.jpg"
+        product:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "prod123"
+            name:
+              type: string
+              example: "iPhone 15 Pro"
+            thumbnailUrl:
+              type: string
+              example: "https://cdn.example.com/thumbnail.jpg"
+    ReviewCreateRequest:
+      type: object
+      required:
+        - orderItemId
+        - rating
+      properties:
+        orderItemId:
+          type: string
+          example: "item123"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          example: "Excellent product quality!"
+    ReviewUpdateRequest:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          example: "Updated review comment"
+    ReviewListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewInfo"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10
+        averageRating:
+          type: number
+          example: 4.5
+        totalReviews:
+          type: integer
+          example: 100

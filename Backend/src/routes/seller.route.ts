@@ -5,9 +5,11 @@ import {
 } from "../middlewares/auth.middleware";
 import { upload } from "../config/multer";
 import shopController from "../controllers/seller/shop.controller";
+import analyticController from "../controllers/seller/analytic.controller";
 import { PermissionCode } from "../constants/permissionCode";
 import { validatePagination } from "../validations/public.validation";
 import productController from "../controllers/seller/product.controller";
+import orderController from "../controllers/seller/order.controller";
 
 const router = express.Router();
 router.use(authenticate);
@@ -97,6 +99,60 @@ productRouter.delete(
   productController.deleteProduct,
 );
 
+productRouter.delete(
+  "/variants/:id",
+  requirePermission([PermissionCode.DELETE_PRODUCT]),
+  productController.deleteVariant,
+);
+
 router.use("/products", productRouter);
+
+// MANAGE ORDER
+const orderRouter = express.Router();
+orderRouter.get(
+  "/",
+  validatePagination,
+  requirePermission([PermissionCode.VIEW_ORDER]),
+  orderController.getShopOrders,
+);
+
+orderRouter.patch(
+  "/:id/status",
+  requirePermission([PermissionCode.UPDATE_ORDER]),
+  orderController.updateSubOrderStatus,
+);
+
+orderRouter.post(
+  "/:id/refund",
+  requirePermission([PermissionCode.UPDATE_ORDER]),
+  orderController.handleRefundRequest,
+);
+
+router.use("/orders", orderRouter);
+
+// ANALYTIC
+const analyticRouter = express.Router();
+analyticRouter.get(
+  "/overview",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getOverview,
+);
+analyticRouter.get(
+  "/revenue",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getRevenueByTime,
+);
+analyticRouter.get(
+  "/top-products",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getTopProducts,
+);
+analyticRouter.get(
+  "/stats",
+  requirePermission([PermissionCode.VIEW_SHOP_REPORTS]),
+  analyticController.getOrderStats,
+);
+
+router.use("/analytics", analyticRouter);
 
 export default router;

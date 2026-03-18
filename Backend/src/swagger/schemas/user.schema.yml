@@ -1,0 +1,143 @@
+components:
+  schemas:
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "user123"
+        username:
+          type: string
+          example: tinh
+        email:
+          type: string
+          example: tinh123@gmail.com
+        fullName:
+          type: string
+          nullable: true
+          example: Nguyen Quoc Tinh
+        avatarUrl:
+          type: string
+          nullable: true
+          example: https://cdn.site/avatar.png
+        status:
+          type: string
+          example: ACTIVE
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "user123"
+        username:
+          type: string
+          example: "johndoe"
+        email:
+          type: string
+          example: "john@example.com"
+        fullName:
+          type: string
+          nullable: true
+          example: "John Doe"
+        avatarUrl:
+          type: string
+          nullable: true
+          example: "https://cdn.example.com/avatar.jpg"
+        status:
+          type: string
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        addresses:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "addr123"
+              receiverName:
+                type: string
+                example: "John Doe"
+              receiverPhone:
+                type: string
+                example: "0123456789"
+              provinceId:
+                type: integer
+                example: 1
+              districtId:
+                type: integer
+                example: 1
+              wardCode:
+                type: string
+                example: "00001"
+              fullAddress:
+                type: string
+                example: "123 Main St, Ward 1, District 1, City"
+              isDefault:
+                type: boolean
+                example: true
+    UserUpdateRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+          example: "John Doe Updated"
+        avatarUrl:
+          type: string
+          example: "https://cdn.example.com/new-avatar.jpg"
+    AddressRequest:
+      type: object
+      required:
+        - receiverName
+        - receiverPhone
+        - provinceId
+        - districtId
+        - wardCode
+        - receiverAddress
+      properties:
+        receiverName:
+          type: string
+          example: "John Doe"
+        receiverPhone:
+          type: string
+          example: "0123456789"
+        provinceId:
+          type: integer
+          example: 1
+        districtId:
+          type: integer
+          example: 1
+        wardCode:
+          type: string
+          example: "00001"
+        receiverAddress:
+          type: string
+          example: "123 Main St"
+        isDefault:
+          type: boolean
+          example: false
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProfile"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10
