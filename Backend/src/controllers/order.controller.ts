@@ -16,13 +16,19 @@ class OrderController {
         req.ip ||
         "127.0.0.1";
 
-      const data = await orderService.createOrder(userId, checkoutData, ipAddr, idempotencyKey);
+      const data = await orderService.createOrder(
+        userId,
+        checkoutData,
+        ipAddr,
+        idempotencyKey,
+      );
       sendSuccess(res, data, "Tạo đơn hàng thành công!");
     },
   );
 
   getMyOrders = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
+      console.log(123);
       const userId = req.user?.userId as string;
       const { page, limit } = req.pagination!;
 
@@ -70,7 +76,11 @@ class OrderController {
       const subOrderId = req.params.id as string;
       const idempotencyKey = req.idempotencyKey!;
 
-      const data = await orderService.confirmReceived(userId, subOrderId, idempotencyKey);
+      const data = await orderService.confirmReceived(
+        userId,
+        subOrderId,
+        idempotencyKey,
+      );
       sendSuccess(res, data, data.message);
     },
   );

@@ -11,6 +11,7 @@ import chatRoute from "./chat.route";
 import notificationRoute from "./notification.route";
 import voucherRoute from "./voucher.route";
 import reviewRoute from "./review.route";
+import orderRoute from "./order.routes";
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.use("/users", userRoute);
 router.use("/seller", shopRoute);
 router.use("/public", publicRoute);
 router.use("/cart", cartRoute);
+router.use("/orders", orderRoute);
 router.use("/payments", paymentRoute);
 router.use("/chat", chatRoute);
 router.use("/notifications", notificationRoute);

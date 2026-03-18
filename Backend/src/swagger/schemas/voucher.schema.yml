@@ -18,26 +18,36 @@ components:
           example: "Get 10% off on all products"
         type:
           type: string
-          enum: [PERCENTAGE, FIXED]
-          example: "PERCENTAGE"
-        value:
+          enum: [PLATFORM, SHOP]
+          example: "PLATFORM"
+        shopId:
+          type: string
+          nullable: true
+          example: "shop123"
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+          example: "PERCENT"
+        discountValue:
           type: number
           example: 10
         minOrderValue:
           type: number
           nullable: true
           example: 100
-        maxDiscount:
+        maxDiscountAmount:
           type: number
           nullable: true
           example: 50
         usageLimit:
           type: integer
-          nullable: true
           example: 100
-        usedCount:
+        usageCount:
           type: integer
           example: 25
+        perUserLimit:
+          type: integer
+          example: 1
         startDate:
           type: string
           format: date-time
@@ -46,13 +56,17 @@ components:
           type: string
           format: date-time
           example: "2024-12-31T23:59:59Z"
-        isActive:
-          type: boolean
-          example: true
-        shopId:
+        status:
           type: string
-          nullable: true
-          example: "shop123"
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
         shop:
           type: object
           nullable: true
@@ -69,7 +83,9 @@ components:
         - code
         - name
         - type
-        - value
+        - discountType
+        - discountValue
+        - usageLimit
         - startDate
         - endDate
       properties:
@@ -84,20 +100,31 @@ components:
           example: "10% off for new customers"
         type:
           type: string
-          enum: [PERCENTAGE, FIXED]
-          example: "PERCENTAGE"
-        value:
+          enum: [PLATFORM, SHOP]
+          example: "PLATFORM"
+        shopId:
+          type: string
+          nullable: true
+          example: "shop123"
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+          example: "PERCENT"
+        discountValue:
           type: number
           example: 10
         minOrderValue:
           type: number
           example: 50
-        maxDiscount:
+        maxDiscountAmount:
           type: number
           example: 20
         usageLimit:
           type: integer
           example: 100
+        perUserLimit:
+          type: integer
+          example: 1
         startDate:
           type: string
           format: date-time
@@ -106,31 +133,47 @@ components:
           type: string
           format: date-time
           example: "2024-12-31T23:59:59Z"
-        shopId:
-          type: string
-          nullable: true
-          example: "shop123"
     VoucherUpdateRequest:
       type: object
       properties:
+        code:
+          type: string
+          example: "UPDATED10"
         name:
           type: string
           example: "Updated Voucher Name"
         description:
           type: string
           example: "Updated description"
-        value:
+        type:
+          type: string
+          enum: [PLATFORM, SHOP]
+          example: "PLATFORM"
+        shopId:
+          type: string
+          nullable: true
+          example: "shop123"
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+          example: "PERCENT"
+        discountValue:
           type: number
           example: 15
         minOrderValue:
           type: number
+          nullable: true
           example: 75
-        maxDiscount:
+        maxDiscountAmount:
           type: number
+          nullable: true
           example: 30
         usageLimit:
           type: integer
           example: 200
+        perUserLimit:
+          type: integer
+          example: 2
         startDate:
           type: string
           format: date-time
@@ -139,9 +182,9 @@ components:
           type: string
           format: date-time
           example: "2024-11-30T23:59:59Z"
-        isActive:
-          type: boolean
-          example: true
+        status:
+          type: string
+          example: "ACTIVE"
     VoucherListResponse:
       type: object
       properties:

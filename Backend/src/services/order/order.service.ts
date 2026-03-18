@@ -13,7 +13,7 @@ import { VoucherResponseDto } from "../../dtos";
 import adminService from "../admin/admin.service";
 import { System } from "../../constants/system/systemKey";
 import { DEFAULT_COMMISSION_RATE_VALUE } from "../../constants/system/systemValue";
-import ghnService from "../shipping/ghn.service,";
+import ghnService from "../shipping/ghn.service";
 import paymentRepository from "../../repositories/payment.repository";
 import { paymentQueue } from "../../queues/payment.queue";
 import { orderQueue } from "../../queues/order.queue";
@@ -184,7 +184,7 @@ class OrderService {
           fromWardCode: group.shop.wardCode,
           toDistrictId: data.districtId,
           toWardCode: data.wardCode,
-          weight: group.weightedTotal,
+          weight: group.weightedTotal * 1000, // GHN tính theo gram nên nhân cho 1000
           totalAmount: group.itemsTotal,
         });
 
@@ -468,9 +468,12 @@ class OrderService {
 
       const response = { ...result, paymentUrl };
 
-      const responseWrapper = { requestHash: idempotency.requestHash, data: response };
+      const responseWrapper = {
+        requestHash: idempotency.requestHash,
+        data: response,
+      };
       await idempotencyKeyRepository.update(idempotency.key, userId, {
-        status: IdempotencyKeyStatus.SUCCESS, 
+        status: IdempotencyKeyStatus.SUCCESS,
         response: JSON.stringify(responseWrapper),
       });
 
@@ -557,92 +560,96 @@ class OrderService {
 
     try {
       const result = await prisma.$transaction(async (tx) => {
-      // Auto cancel sub order if order status is pending payment
-      if (subOrder.status === OrderStatus.PENDING_PAYMENT) {
-        // Update Sub Order
-        await orderRepository.cancelSubOrder(tx, [subOrder.id]);
+        // Auto cancel sub order if order status is pending payment
+        if (subOrder.status === OrderStatus.PENDING_PAYMENT) {
+          // Update Sub Order
+          await orderRepository.cancelSubOrder(tx, [subOrder.id]);
 
-        // Release Stock
-        await inventoryService.releaseStock(
-          tx,
-          subOrder.orderItems.map((item) => ({
-            variantId: item.variantId,
-            quantity: item.quantity,
-          })),
-        );
+          // Release Stock
+          await inventoryService.releaseStock(
+            tx,
+            subOrder.orderItems.map((item) => ({
+              variantId: item.variantId,
+              quantity: item.quantity,
+            })),
+          );
+
+          // Send Notification
+          await notificationService.createNotification(
+            userId,
+            "Đơn hàng đã được hủy",
+            `Đơn hàng ${subOrder.subOrderCode} đã được hủy thành công!`,
+          );
+
+          return {
+            message: "Yêu cầu hủy đơn đã được xử lý thành công!",
+          };
+        }
+
+        // Create Refund
+        const refund = await refundRepository.createRefund(tx, {
+          amount: subOrder.totalAmount,
+          reason,
+          subOrderId: subOrder.id,
+          status: RefundStatus.REQUESTED,
+          paymentId: payment.id,
+        });
 
         // Send Notification
         await notificationService.createNotification(
           userId,
-          "Đơn hàng đã được hủy",
-          `Đơn hàng ${subOrder.subOrderCode} đã được hủy thành công!`,
+          "Yêu cầu hủy đơn đã được gửi",
+          `Yêu cầu hủy đơn hàng ${subOrder.subOrderCode} đã được gửi thành công và đang chờ xử lý!`,
         );
 
         return {
-          message: "Yêu cầu hủy đơn đã được xử lý thành công!",
+          message: "Yêu cầu hủy đơn đã được gửi thành công, đang chờ xử lý!",
+          refundId: refund.id,
         };
-      }
-
-      // Create Refund
-      const refund = await refundRepository.createRefund(tx, {
-        amount: subOrder.totalAmount,
-        reason,
-        subOrderId: subOrder.id,
-        status: RefundStatus.REQUESTED,
-        paymentId: payment.id,
       });
 
-      // Send Notification
-      await notificationService.createNotification(
-        userId,
-        "Yêu cầu hủy đơn đã được gửi",
-        `Yêu cầu hủy đơn hàng ${subOrder.subOrderCode} đã được gửi thành công và đang chờ xử lý!`,
-      );
+      // Sync Order
+      if (result.refundId) {
+        await orderQueue.add(
+          "refund-sub-order",
+          {
+            refundId: result.refundId,
+          },
+          {
+            delay: 24 * 60 * 60 * 1000,
+            removeOnComplete: true,
+            removeOnFail: true,
+          },
+        );
+      }
 
-      return {
-        message: "Yêu cầu hủy đơn đã được gửi thành công, đang chờ xử lý!",
-        refundId: refund.id,
+      const responseWrapper = {
+        requestHash: idempotency.requestHash,
+        data: result,
       };
-    });
+      await idempotencyKeyRepository.update(idempotency.key, userId, {
+        status: IdempotencyKeyStatus.SUCCESS,
+        response: JSON.stringify(responseWrapper),
+      });
 
-    // Sync Order
-    if (result.refundId) {
-      await orderQueue.add(
-        "refund-sub-order",
-        {
-          refundId: result.refundId,
-        },
-        {
-          delay: 24 * 60 * 60 * 1000,
-          removeOnComplete: true,
-          removeOnFail: true,
-        },
+      await cacheService.set(
+        CacheKey.idempotency.key(idempotency.key, userId),
+        responseWrapper,
+        10 * 60,
       );
+
+      return result;
+    } catch (error) {
+      await idempotencyKeyRepository.updateStatus(
+        idempotency.key,
+        userId,
+        IdempotencyKeyStatus.FAILED,
+      );
+      throw error;
+    } finally {
+      await deleteLock(idempotency.lockKey, idempotency.lockValue);
     }
-
-    const responseWrapper = { requestHash: idempotency.requestHash, data: result };
-    await idempotencyKeyRepository.update(idempotency.key, userId, {
-      status: IdempotencyKeyStatus.SUCCESS,
-      response: JSON.stringify(responseWrapper),
-    });
-
-    await cacheService.set(
-      CacheKey.idempotency.key(idempotency.key, userId),
-      responseWrapper,
-      10 * 60,
-    );
-
-    return result;
-  } catch (error) {
-    await idempotencyKeyRepository.updateStatus(
-      idempotency.key,
-      userId,
-      IdempotencyKeyStatus.FAILED,
-    );
-    throw error;
-  } finally {
-    await deleteLock(idempotency.lockKey, idempotency.lockValue);
-  }};
+  };
 
   getShopOrders = async (shopId: string, input: InputAll) => {
     const shop = await shopRepository.findShopById(shopId);
@@ -803,7 +810,10 @@ class OrderService {
         message: "Xác nhận nhận hàng thành công!",
       };
 
-      const responseWrapper = { requestHash: idempotency.requestHash, data: result };
+      const responseWrapper = {
+        requestHash: idempotency.requestHash,
+        data: result,
+      };
       await idempotencyKeyRepository.update(idempotency.key, userId, {
         status: IdempotencyKeyStatus.SUCCESS,
         response: JSON.stringify(responseWrapper),

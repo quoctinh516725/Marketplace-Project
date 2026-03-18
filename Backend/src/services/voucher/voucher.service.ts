@@ -193,6 +193,7 @@ class VoucherService {
       if (!shop) {
         throw new NotFoundError("Cửa hàng không tồn tại");
       }
+
       if (shop.status !== "ACTIVE") {
         throw new ValidationError("Cửa hàng không hoạt động");
       }

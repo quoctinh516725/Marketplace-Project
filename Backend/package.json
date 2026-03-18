@@ -11,7 +11,11 @@
     "seed:products": "tsx prisma/seed.products.ts",
     "seed:data": "tsx prisma/seed.ts",
     "sync:products:es": "tsx src/syncProductsToEs.ts",
-    "start:cart-worker": "nodemon --exec tsx src/workers/cart.worker.ts"
+    "start:cart-worker": "nodemon --exec tsx src/workers/cart.worker.ts",
+    "start:cleanup-worker": "tsx src/workers/cleanup.worker.ts",
+    "start:email-worker": "tsx src/workers/email.worker.ts",
+    "start:order-worker": "tsx src/workers/order.worker.ts",
+    "start:payment-worker": "tsx src/workers/payment.worker.ts"
   },
   "keywords": [],
   "author": "",

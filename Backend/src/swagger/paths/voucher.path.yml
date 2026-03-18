@@ -1,7 +1,7 @@
 paths:
   /vouchers:
     get:
-      summary: Lấy tất cả voucher (Chỉ dành cho quản trị viên)
+      summary: Lấy tất cả voucher
       tags:
         - Vouchers
       security:
@@ -25,7 +25,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/VoucherListResponse"
     post:
-      summary: Tạo voucher (Chỉ dành cho quản trị viên)
+      summary: Tạo voucher
       tags:
         - Vouchers
       security:
@@ -44,6 +44,8 @@ paths:
       summary: Lấy voucher theo ID
       tags:
         - Vouchers
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -57,8 +59,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VoucherInfo"
-    put:
-      summary: Cập nhật voucher (Chỉ dành cho quản trị viên)
+    patch:
+      summary: Cập nhật voucher
       tags:
         - Vouchers
       security:
@@ -79,7 +81,7 @@ paths:
         "200":
           description: Cập nhật voucher thành công
     delete:
-      summary: Xóa voucher (Chỉ dành cho quản trị viên)
+      summary: Xóa voucher
       tags:
         - Vouchers
       security:

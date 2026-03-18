@@ -10,7 +10,7 @@ type SeedVariant = {
   imageUrl: string;
   price: number;
   stock: number;
-  weight?: number;
+  weight: number;
   attributes: Array<{
     code: string;
     value: string;
@@ -146,6 +146,9 @@ async function seedProducts() {
         sellerId: seller.id,
         name: "Seed Shop",
         address: "123 Seed Street, Ho Chi Minh City",
+        districtId: 1441,
+        provinceId: 202,
+        wardCode: "20101",
         phone: "0900000000",
         slug: "seed-shop",
         description: "Shop duoc tao de seed du lieu san pham",
@@ -369,7 +372,7 @@ async function seedProducts() {
             imageUrl: variantSeed.imageUrl,
             price: new Prisma.Decimal(variantSeed.price),
             stock: variantSeed.stock,
-            weight: variantSeed.weight ?? null,
+            weight: variantSeed.weight ,
             status: ProductStatus.ACTIVE,
           },
           create: {
@@ -379,7 +382,7 @@ async function seedProducts() {
             imageUrl: variantSeed.imageUrl,
             price: new Prisma.Decimal(variantSeed.price),
             stock: variantSeed.stock,
-            weight: variantSeed.weight ?? null,
+            weight: variantSeed.weight,
             status: ProductStatus.ACTIVE,
           },
         });

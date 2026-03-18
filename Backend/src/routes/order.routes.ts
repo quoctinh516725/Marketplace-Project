@@ -9,7 +9,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post("/checkout", idempotencyMiddleware, orderController.checkout);
+router.post("/checkout", orderController.checkout);
 router.post("/:orderId/payments", idempotencyMiddleware, paymentController.getPaymentUrl);
 router.get("/", validatePagination, orderController.getMyOrders);
 router.get("/:id", orderController.getSubOrderDetail);

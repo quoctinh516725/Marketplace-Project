@@ -1,8 +1,8 @@
-import { NotificationListResult } from "../../repositories/notification.repository";
+import { NotificationResult } from "../../types/notification";
 import { NotificationResponseDto } from "./notification.response.dto";
 
 export const toNotificationListResponse = (
-  notification: NotificationListResult,
+  notification: NotificationResult,
 ): NotificationResponseDto => ({
   id: notification.id,
   title: notification.title,
