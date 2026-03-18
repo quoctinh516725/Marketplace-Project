@@ -42,30 +42,30 @@ userRoute.patch(
 
 userRoute.post(
   "/:userId/roles",
-  requireRole([UserRole.ADMIN]),
+  requirePermission([PermissionCode.MANAGE_ROLES]),
   roleController.assignRoleToUser,
 );
 userRoute.delete(
   "/:userId/roles",
-  requireRole([UserRole.ADMIN]),
+  requirePermission([PermissionCode.MANAGE_ROLES]),
   roleController.revokeRoleFromUser,
 );
 
 userRoute.post(
   "/:userId/permissions",
-  requireRole([UserRole.ADMIN]),
+  requirePermission([PermissionCode.MANAGE_PERMISSIONS]),
   permissionController.assignPermissionToUser,
 );
 userRoute.delete(
   "/:userId/permissions",
-  requireRole([UserRole.ADMIN]),
+  requirePermission([PermissionCode.MANAGE_PERMISSIONS]),
   permissionController.removePermissionFromUser,
 );
 router.use("/users", userRoute);
 
 // --- ROLE ROUTE --- //
 const roleRoute = Router();
-roleRoute.use(requireRole([UserRole.ADMIN]));
+roleRoute.use(requirePermission([PermissionCode.MANAGE_ROLES]));
 
 roleRoute.get("/", roleController.getAllRoles);
 roleRoute.get("/:id", roleController.getRoleById);
@@ -87,7 +87,7 @@ router.use("/roles", roleRoute);
 
 // --- PERMISION ROUTE --- //
 const permissionRoute = Router();
-permissionRoute.use(requireRole([UserRole.ADMIN]));
+permissionRoute.use(requirePermission([PermissionCode.MANAGE_PERMISSIONS]));
 
 permissionRoute.post("/", permissionController.create);
 permissionRoute.get("/", validatePagination, permissionController.getAll);
@@ -98,12 +98,26 @@ router.use("/permissions", permissionRoute);
 
 // --- SYSTEM
 const systemRoutes = Router();
-systemRoutes.use(requireRole([UserRole.ADMIN]));
-
-systemRoutes.get("/settings", adminController.getSystemSettings);
-systemRoutes.post("/settings", adminController.createSystemSetting);
-systemRoutes.patch("/settings/:key", adminController.updateSystemSetting);
-systemRoutes.delete("/settings/:key", adminController.deleteSystemSetting);
+systemRoutes.get(
+  "/settings",
+  requirePermission([PermissionCode.MANAGE_SYSTEM_SETTINGS]),
+  adminController.getSystemSettings
+);
+systemRoutes.post(
+  "/settings",
+  requirePermission([PermissionCode.MANAGE_SYSTEM_SETTINGS]),
+  adminController.createSystemSetting
+);
+systemRoutes.patch(
+  "/settings/:key",
+  requirePermission([PermissionCode.MANAGE_SYSTEM_SETTINGS]),
+  adminController.updateSystemSetting
+);
+systemRoutes.delete(
+  "/settings/:key",
+  requirePermission([PermissionCode.MANAGE_SYSTEM_SETTINGS]),
+  adminController.deleteSystemSetting
+);
 
 systemRoutes.get(
   "/analytics/overview",

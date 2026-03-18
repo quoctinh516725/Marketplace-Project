@@ -1,6 +1,7 @@
 import express from "express";
-import { authenticate } from "../middlewares/auth.middleware";
+import { authenticate, requirePermission } from "../middlewares/auth.middleware";
 import reviewController from "../controllers/review.controller";
+import { PermissionCode } from "../constants/permissionCode";
 
 const router = express.Router();
 
@@ -8,16 +9,28 @@ const router = express.Router();
 router.use(authenticate);
 
 // Create review
-router.post("/", reviewController.createReview);
+router.post(
+  "/",
+  requirePermission([PermissionCode.CREATE_REVIEW]),
+  reviewController.createReview
+);
 
 // Get reviews by product
 router.get("/products/:productId", reviewController.getProductReviews);
 
 // Update review
-router.patch("/:id", reviewController.updateReview);
+router.patch(
+  "/:id",
+  requirePermission([PermissionCode.UPDATE_REVIEW]),
+  reviewController.updateReview
+);
 
 // Delete review
-router.delete("/:id", reviewController.deleteReview);
+router.delete(
+  "/:id",
+  requirePermission([PermissionCode.DELETE_REVIEW]),
+  reviewController.deleteReview
+);
 
 // Get review by ID
 router.get("/:id", reviewController.getReviewById);

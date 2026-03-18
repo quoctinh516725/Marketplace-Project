@@ -72,14 +72,14 @@ productRouter.post(
 
 productRouter.post(
   "/:id/thumbnail",
-  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  requirePermission([PermissionCode.UPDATE_PRODUCT]),
   upload.single("thumbnail"),
   productController.uploadThumbnail,
 );
 
 productRouter.post(
   "/:id/images",
-  requirePermission([PermissionCode.CREATE_PRODUCT]),
+  requirePermission([PermissionCode.UPDATE_PRODUCT]),
   upload.array("images", 10),
   productController.uploadImages,
 );
