@@ -19,30 +19,25 @@ new Worker(
 
         if (!order) return;
 
-        if (order.status === OrderStatus.PENDING_PAYMENT) {
-          await prisma.$transaction(async (tx) => {
-            await orderRepository.updateOrder(tx, orderId, {
-              status: OrderStatus.CANCELLED,
-            });
+        await prisma.$transaction(async (tx) => {
+          await orderRepository.cancelOrder(tx, orderId);
 
-            const subTotalIds = order.subOrders.map((a) => a.id);
-            // Update SubOrder Status
-            await orderRepository.updateSubOrders(tx, subTotalIds, {
-              status: OrderStatus.CANCELLED,
-            });
+          const subTotalIds = order.subOrders.map((a) => a.id);
+          // Update SubOrder Status
+          await orderRepository.cancelSubOrder(tx, subTotalIds);
 
-            // Release Stock
-            await inventoryService.releaseStock(
-              tx,
-              order.subOrders.flatMap((subOrder) =>
-                subOrder.orderItems.map((item) => ({
-                  variantId: item.variantId,
-                  quantity: item.quantity,
-                })),
-              ),
-            );
-          });
-        }
+          // Release Stock
+          await inventoryService.releaseStock(
+            tx,
+            order.subOrders.flatMap((subOrder) =>
+              subOrder.orderItems.map((item) => ({
+                variantId: item.variantId,
+                quantity: item.quantity,
+              })),
+            ),
+          );
+        });
+
         break;
       case "refund-sub-order":
         const refund = await refundRepository.findRefundById(refundId);

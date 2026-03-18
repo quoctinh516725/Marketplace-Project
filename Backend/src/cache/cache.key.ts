@@ -71,4 +71,9 @@ export const CacheKey = {
   },
 
   system: (key: string) => `${KEY_PREFIX}:system:${key}`,
+
+  idempotency: {
+    key: (key: string, userId: string) =>
+      `${KEY_PREFIX}:idempotency:${key}:${userId}`,
+  },
 };

@@ -55,7 +55,7 @@ class PaymentRepository {
     paymentId: string,
     status: PaymentStatus,
   ) => {
-    return await client.payment.update({
+    return await client.payment.updateMany({
       where: { id: paymentId, status: PaymentStatus.PENDING },
       data: { status },
     });

@@ -9,13 +9,14 @@ class OrderController {
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user?.userId as string;
       const checkoutData = orderRequestDto(req.body);
+      const idempotencyKey = req.idempotencyKey!;
       const ipAddr =
         (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() ||
         req.socket.remoteAddress ||
         req.ip ||
         "127.0.0.1";
 
-      const data = await orderService.createOrder(userId, checkoutData, ipAddr);
+      const data = await orderService.createOrder(userId, checkoutData, ipAddr, idempotencyKey);
       sendSuccess(res, data, "Tạo đơn hàng thành công!");
     },
   );
@@ -51,11 +52,13 @@ class OrderController {
       const userId = req.user?.userId as string;
       const subOrderId = req.params.id as string;
       const { reason } = req.body;
+      const idempotencyKey = req.idempotencyKey!;
 
       const data = await orderService.cancelSubOrder(
         userId,
         subOrderId,
         reason,
+        idempotencyKey,
       );
       sendSuccess(res, data, data.message);
     },
@@ -65,8 +68,9 @@ class OrderController {
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user?.userId as string;
       const subOrderId = req.params.id as string;
+      const idempotencyKey = req.idempotencyKey!;
 
-      const data = await orderService.confirmReceived(userId, subOrderId);
+      const data = await orderService.confirmReceived(userId, subOrderId, idempotencyKey);
       sendSuccess(res, data, data.message);
     },
   );

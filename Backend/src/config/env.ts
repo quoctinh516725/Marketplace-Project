@@ -41,4 +41,5 @@ export const env = {
   VNP_RETURN_URL: required("VNP_RETURN_URL"),
   EMAIL_USER: required("EMAIL_USER"),
   EMAIL_PASSWORD: required("EMAIL_PASSWORD"),
+  OAUTH_CLIENT_ID: required("OAUTH_CLIENT_ID"),
 };

@@ -19,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-mssql": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "axios": "^1.13.6",
@@ -32,6 +33,7 @@
     "eslint": "^9.39.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
+    "google-auth-library": "^10.6.2",
     "helmet": "^8.1.0",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",

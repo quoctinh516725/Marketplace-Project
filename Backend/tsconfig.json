@@ -9,6 +9,6 @@
     "outDir": "dist",
     "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "src/config/embedding.ts"],
   "exclude": ["node_modules", "prisma"]
 }

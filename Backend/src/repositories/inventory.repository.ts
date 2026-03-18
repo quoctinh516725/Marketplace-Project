@@ -9,7 +9,7 @@ class InventoryRepository {
     const result = await client.$executeRaw`
     UPDATE "productVariant"
     SET "reservedStock" = "reservedStock" + ${item.quantity}
-    WHERE id = ${item.variantId}
+    WHERE "id" = ${item.variantId}
     AND "deletedAt" IS NULL
     AND "stock" - "reservedStock" >= ${item.quantity}
     `;
@@ -23,8 +23,8 @@ class InventoryRepository {
     client: PrismaType,
     item: { variantId: string; reversedStock: number },
   ) => {
-    return client.productVariant.update({
-      where: { id: item.variantId },
+    return client.productVariant.updateMany({
+      where: { id: item.variantId  },
       data: {
         reservedStock: { decrement: item.reversedStock },
       },

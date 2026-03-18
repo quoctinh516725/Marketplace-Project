@@ -15,7 +15,9 @@ import {
 export interface CreateUserData {
   username: string;
   email: string;
-  password: string;
+  password: string | null; // Có thể null nếu đăng nhập bằng Oauth
+  fullName?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateUserData {
@@ -32,13 +34,11 @@ export type CreateUserAddressData = Prisma.UserAddressUncheckedCreateInput;
 export type UpdateUserAddressData = Prisma.UserAddressUncheckedUpdateInput;
 
 class UserRepository {
-  existEmail = async (email: string): Promise<boolean> => {
-    const exist = await prisma.user.findUnique({
+  existEmail = async (email: string): Promise<UserBasicResult | null> => {
+    return await prisma.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: selectUserBasic,
     });
-
-    return exist !== null;
   };
 
   existUsername = async (username: string): Promise<boolean> => {
@@ -47,6 +47,16 @@ class UserRepository {
       select: { id: true },
     });
     return exist !== null;
+  };
+
+  existEmailOrUsername = async (
+    emailOrUsername: string,
+  ): Promise<User | null> => {
+    return await prisma.user.findFirst({
+      where: {
+        OR: [{ username: emailOrUsername }, { email: emailOrUsername }],
+      },
+    });
   };
 
   create = async (
@@ -167,16 +177,6 @@ class UserRepository {
   ): Promise<UserAddress | null> => {
     return await client.userAddress.findUnique({
       where: { id: addressId },
-    });
-  };
-
-  existEmailOrUsername = async (
-    emailOrUsername: string,
-  ): Promise<User | null> => {
-    return await prisma.user.findFirst({
-      where: {
-        OR: [{ username: emailOrUsername }, { email: emailOrUsername }],
-      },
     });
   };
 

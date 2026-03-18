@@ -1,5 +1,7 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../config/prisma";
+import { OrderStatus } from "../constants/orderStatus";
+import { ValidationError } from "../error/AppError";
 import { InputAll, PrismaType } from "../types";
 import {
   DetailOrder,
@@ -160,6 +162,28 @@ class OrderRepository {
     ]);
 
     return { data: subOrders, total };
+  };
+
+  cancelOrder = async (client: PrismaType, orderId: string) => {
+    const result = await client.masterOrder.updateMany({
+      where: { id: orderId, status: OrderStatus.PENDING_PAYMENT },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    if (result.count === 0) {
+      throw new ValidationError("Hủy đơn hàng thất bại!");
+    }
+  };
+
+  cancelSubOrder = async (client: PrismaType, subOrderId: string[]) => {
+    const result = await client.subOrder.updateMany({
+      where: { id: { in: subOrderId }, status: OrderStatus.PENDING_PAYMENT },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    if (result.count === 0) {
+      throw new ValidationError("Hủy đơn hàng thất bại!");
+    }
   };
 }
 export default new OrderRepository();

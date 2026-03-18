@@ -173,12 +173,10 @@ class VoucherService {
 
   applyVoucher = async (client: PrismaType, data: CreateVoucherUsageData[]) => {
     // Increment UsageCount
-    await Promise.all(
-      data.flatMap((v) => [
-        voucherRepository.incrementUsage(client, v.voucherId),
-        voucherRepository.createVoucherUsage(client, v),
-      ]),
-    );
+    for (const v of data) {
+      await voucherRepository.incrementUsage(client, v.voucherId);
+    }
+    await voucherRepository.createVoucherUsage(client, data);
   };
 
   createVoucher = async (

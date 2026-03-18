@@ -23,9 +23,9 @@ class VoucherRepository {
 
   createVoucherUsage = async (
     client: PrismaType,
-    data: CreateVoucherUsageData,
+    data: CreateVoucherUsageData[],
   ) => {
-    return await client.voucherUsage.create({ data });
+    return await client.voucherUsage.createMany({ data });
   };
 
   findById = async (

@@ -24,6 +24,12 @@ declare global {
       user?: DecodedToken;
       token?: string;
       roles?: string[];
+      idempotencyKey?: {
+        key: string;
+        lockValue: string;
+        lockKey: string;
+        requestHash: string;
+      };
     }
   }
 }

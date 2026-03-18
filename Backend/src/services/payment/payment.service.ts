@@ -4,7 +4,6 @@ import paymentRepository from "../../repositories/payment.repository";
 import { sortParams } from "../../utils/sortParams";
 import crypto from "crypto";
 import qs from "qs";
-import orderService from "../order/order.service";
 import { NotFoundError, ValidationError } from "../../error/AppError";
 import { OrderStatus } from "../../constants/orderStatus";
 import { PaymentMethod } from "../../constants/payment/paymentMethod";
@@ -15,6 +14,11 @@ import orderRepository from "../../repositories/order.repository";
 import inventoryService from "../inventory/inventory.service";
 import { emailQueue } from "../../queues/email.queue";
 import notificationService from "../notification/notification.service";
+import idempotencyKeyRepository from "../../repositories/idempotencyKey.repository";
+import { IdempotencyKeyStatus } from "../../constants/idempotencyKeyStatus";
+import { CacheKey } from "../../cache/cache.key";
+import { deleteLock } from "../../middlewares/idempotency.middleware";
+import cacheService from "../../cache/cache.service";
 
 type GetPaymentReturn = {
   paymentId: string;
@@ -242,91 +246,126 @@ class PaymentService {
     orderId: string,
     userId: string,
     ipAddress: string,
+    idempotency: {
+      key: string;
+      lockValue: string;
+      lockKey: string;
+      requestHash: string;
+    },
   ) => {
-    const result = await prisma.$transaction(async (tx) => {
-      // Lock row for update để tránh tạo trùng
-      await tx.$executeRaw`
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        // Lock row for update để tránh tạo trùng
+        await tx.$executeRaw`
             SELECT id FROM "MasterOrder"
             WHERE id = ${orderId}
             FOR UPDATE
         `;
-      const order = await orderRepository.findById(
-        tx,
-        orderId as string,
-        userId,
-      );
-      if (!order) throw new NotFoundError("Không tìm thấy đơn hàng!");
 
-      // Order Expire
-      if (order.status !== OrderStatus.PENDING_PAYMENT) {
-        throw new ValidationError(
-          "Đơn hàng không ở trạng thái chờ thanh toán!",
-        );
-      }
-
-      let payment = await paymentRepository.findLastPaymentByOrderId(
-        tx,
-        order.id,
-        userId,
-      );
-      if (!payment) throw new NotFoundError("Không tìm thấy giao dịch!");
-
-      // Cod
-      if (payment.paymentMethod === PaymentMethod.COD) {
-        throw new ValidationError("Phương thức thanh toán không hợp lệ!");
-      }
-
-      // payment SUCCESS
-      if (payment.status === PaymentStatus.SUCCESS) {
-        throw new ValidationError("Giao dịch đã thanh toán!");
-      }
-
-      // payment FAILED hoặc EXPIRED tạo payment mới với order trên
-      if (
-        payment.status === PaymentStatus.FAILED ||
-        payment.status === PaymentStatus.EXPIRED
-      ) {
-        const newPayment = await paymentRepository.createPayment(tx, {
-          masterOrderId: payment.masterOrderId,
-          paymentMethod: payment.paymentMethod,
-          totalAmount: payment.totalAmount.toNumber(),
+        const order = await orderRepository.findById(
+          tx,
+          orderId as string,
           userId,
-        });
-
-        await paymentRepository.createPaymentAllocations(
-          tx,
-          payment.allocations.map((alloc) => ({
-            paymentId: newPayment.id,
-            subOrderId: alloc.subOrderId,
-            amount: alloc.amount,
-          })),
         );
+        if (!order) throw new NotFoundError("Không tìm thấy đơn hàng!");
 
-        await orderRepository.updateSubOrders(
+        // Order Expire
+        if (order.status !== OrderStatus.PENDING_PAYMENT) {
+          throw new ValidationError(
+            "Đơn hàng không ở trạng thái chờ thanh toán!",
+          );
+        }
+
+        let payment = await paymentRepository.findLastPaymentByOrderId(
           tx,
-          payment.allocations.map((a) => a.subOrderId),
-          { currentPaymentId: newPayment.id },
+          order.id,
+          userId,
         );
+        if (!payment) throw new NotFoundError("Không tìm thấy giao dịch!");
 
-        payment = newPayment;
-      }
+        // Cod
+        if (payment.paymentMethod === PaymentMethod.COD) {
+          throw new ValidationError("Phương thức thanh toán không hợp lệ!");
+        }
 
-      return payment;
-    });
+        // payment SUCCESS
+        if (payment.status === PaymentStatus.SUCCESS) {
+          throw new ValidationError("Giao dịch đã thanh toán!");
+        }
 
-    // Sync Payment
-    await paymentQueue.add(
-      "expire-payment",
-      { paymentId: result.id },
-      { delay: 15 * 60 * 1000, removeOnComplete: true, removeOnFail: true },
-    );
+        // payment FAILED hoặc EXPIRED tạo payment mới với order trên
+        if (
+          payment.status === PaymentStatus.FAILED ||
+          payment.status === PaymentStatus.EXPIRED
+        ) {
+          const newPayment = await paymentRepository.createPayment(tx, {
+            masterOrderId: payment.masterOrderId,
+            paymentMethod: payment.paymentMethod,
+            totalAmount: payment.totalAmount.toNumber(),
+            userId,
+          });
 
-    // payment hợp lệ
-    return this.generatePaymentUrl(
-      result.id,
-      result.totalAmount.toNumber(),
-      ipAddress,
-    );
+          await paymentRepository.createPaymentAllocations(
+            tx,
+            payment.allocations.map((alloc) => ({
+              paymentId: newPayment.id,
+              subOrderId: alloc.subOrderId,
+              amount: alloc.amount,
+            })),
+          );
+
+          await orderRepository.updateSubOrders(
+            tx,
+            payment.allocations.map((a) => a.subOrderId),
+            { currentPaymentId: newPayment.id },
+          );
+
+          payment = newPayment;
+        }
+
+        return payment;
+      });
+
+      // Sync Payment
+      await paymentQueue.add(
+        "expire-payment",
+        { paymentId: result.id },
+        { delay: 15 * 60 * 1000, removeOnComplete: true, removeOnFail: true },
+      );
+
+      // payment hợp lệ
+      const paymentUrl = this.generatePaymentUrl(
+        result.id,
+        result.totalAmount.toNumber(),
+        ipAddress,
+      );
+
+      const responseWrapper = {
+        requestHash: idempotency.requestHash,
+        data: paymentUrl,
+      };
+      await idempotencyKeyRepository.update(idempotency.key, userId, {
+        status: IdempotencyKeyStatus.SUCCESS,
+        response: JSON.stringify(responseWrapper),
+      });
+
+      await cacheService.set(
+        CacheKey.idempotency.key(idempotency.key, userId),
+        responseWrapper,
+        10 * 60,
+      );
+
+      return paymentUrl;
+    } catch (error) {
+      await idempotencyKeyRepository.updateStatus(
+        idempotency.key,
+        userId,
+        IdempotencyKeyStatus.FAILED,
+      );
+      throw error;
+    } finally {
+      await deleteLock(idempotency.lockKey, idempotency.lockValue);
+    }
   };
 }
 

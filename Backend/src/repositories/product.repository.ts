@@ -127,7 +127,7 @@ class ProductRepository {
     const take = limit;
     const where: Prisma.ProductCategoryWhereInput = {
       categoryId,
-      product: {  
+      product: {
         ...(search && { name: { contains: search } }),
         ...(status && { status }),
         deletedAt: null,

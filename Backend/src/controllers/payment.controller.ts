@@ -14,10 +14,12 @@ class PaymentController {
       "127.0.0.1";
 
     const userId = req.user?.userId!;
+    const idempotencyKey = req.idempotencyKey!;
     const payment_url = await paymentService.getPaymentUrl(
       orderId as string,
       userId,
       ipAddr,
+      idempotencyKey,
     );
 
     sendSuccess(res, { payment_url }, "Lấy liên kết thanh toán thành công!");

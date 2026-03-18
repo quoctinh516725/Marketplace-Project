@@ -12,7 +12,7 @@ model User {
   email       String    @unique
   username    String    @unique
   phone       String?
-  password    String
+  password    String?
   fullName    String?   @map("full_name")
   avatarUrl   String?   @map("avatar_url")
   gender      String?
@@ -36,9 +36,26 @@ model User {
   notifications    Notification[]
   productReviews   ProductReview[]
   voucherUsages    VoucherUsage[]
+  oauthAccounts    OauthAccount[]
+  idempotentKeys   IdempotentKey[]
 
   @@index([status, createdAt])
   @@map("users")
+}
+
+model OauthAccount {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  provider       String   // GOOGLE, FACEBOOK,...
+  providerUserId String   @map("provider_user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now())   @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
 }
 
 model UserAddress {
@@ -696,4 +713,20 @@ model Notification {
   @@index([userId, isRead])
 
   @@map("notifications")
+}
+
+model IdempotentKey {
+  id        String   @id @default(uuid())
+  status    String   @default("PROCESSING")
+  userId    String   @map("user_id")
+  requestHash String?   @map("request_hash")
+  response String?   @map("response_data")
+  key       String   
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([key, userId])
+  @@index([expiresAt])
+
+  @@map("idempotent_keys")
 }

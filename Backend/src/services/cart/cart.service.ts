@@ -2,7 +2,8 @@ import cacheTag from "../../cache/cache.tag";
 import { CacheTTL } from "../../cache/cache.ttl";
 import redis from "../../config/redis";
 import { CartResponseDto, toCartResponse } from "../../dtos/cart";
-import { NotFoundError } from "../../error/AppError";
+import { OrderRequestDto } from "../../dtos/order";
+import { NotFoundError, ValidationError } from "../../error/AppError";
 import { cartQueue } from "../../queues/cart.queue";
 import cartRepository from "../../repositories/cart.repository";
 import productRepository from "../../repositories/product.repository";
@@ -186,6 +187,7 @@ class CartService {
 
     return null;
   };
+
   removeItems = async (
     identify: CartIdentify,
     variantIds: string[],
@@ -316,7 +318,6 @@ class CartService {
         const userItem = JSON.parse(userCart[variantId]);
         guestItem.quantity += userItem.quantity;
       }
-      console.log(guestItem);
 
       pipline.hset(userKey, variantId, JSON.stringify(guestItem));
     }

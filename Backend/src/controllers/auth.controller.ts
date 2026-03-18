@@ -15,10 +15,23 @@ class AuthController {
 
     const result = await authService.login(dataValidated, guestId);
     const { refreshToken, ...data } = result;
-    res.clearCookie(guestId);
+    res.clearCookie("guestId");
     setRefreshTokenCookie(res, refreshToken);
     sendSuccess(res, data, "Đăng nhập thành công!");
   });
+  loginGoogle = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { idToken } = req.body;
+    const guestId = req.cookies.guestId;
+
+    const result = await authService.loginGoogle(idToken, guestId);
+    const { refreshToken, ...data } = result;
+
+    res.clearCookie("guestId");
+    setRefreshTokenCookie(res, refreshToken);
+    sendSuccess(res, data, "Đăng nhập thành công!");
+  });
+
+
 
   register = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
@@ -28,7 +41,7 @@ class AuthController {
       const result = await authService.register(dataValidated, guestId);
 
       const { refreshToken, ...data } = result;
-      res.clearCookie(guestId);
+      res.clearCookie("guestId");
 
       setRefreshTokenCookie(res, refreshToken);
       sendSuccess(res, data, "Đăng ký thành công!");
